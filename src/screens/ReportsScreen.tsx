@@ -25,12 +25,18 @@ const PRESETS: { key: PeriodPreset; label: string; days?: number }[] = [
   { key: 'custom', label: 'Personalizado' },
 ];
 
-const PAYMENT_LABELS: Record<PaymentMethod, { label: string; color: string }> = {
-  pix: { label: 'PIX', color: colors.pix },
-  dinheiro: { label: 'Dinheiro', color: colors.cash },
-  debito: { label: 'Débito', color: colors.debit },
-  credito: { label: 'Crédito', color: colors.credit },
+const PAYMENT_LABELS: Record<PaymentMethod, { label: string; color: string; muted: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  pix: { label: 'PIX', color: colors.pix, muted: colors.emeraldMuted, icon: 'flash-outline' },
+  dinheiro: { label: 'Dinheiro', color: colors.cash, muted: colors.sandMuted, icon: 'cash-outline' },
+  debito: { label: 'Débito', color: colors.debit, muted: colors.primaryMuted, icon: 'card-outline' },
+  credito: { label: 'Crédito', color: colors.credit, muted: colors.coralMuted, icon: 'card' },
 };
+
+const RANK_STYLES = [
+  { bg: colors.sandMuted, text: colors.sand },
+  { bg: 'rgba(155, 178, 189, 0.16)', text: colors.textSecondary },
+  { bg: colors.coralMuted, text: colors.coral },
+];
 
 function subDays(date: Date, days: number) {
   const d = new Date(date);
@@ -60,6 +66,12 @@ export function ReportsScreen({ navigation }: Props) {
     [allSales, range]
   );
 
+  const periodLabel = useMemo(() => {
+    const days = PRESETS.find((p) => p.key === preset)?.days;
+    if (days) return `Últimos ${days} dias`;
+    return `${formatDateLabel(range.start.toISOString())} até ${formatDateLabel(range.end.toISOString())}`;
+  }, [preset, range]);
+
   const handleSelectPreset = (key: PeriodPreset) => {
     setPreset(key);
   };
@@ -77,22 +89,36 @@ export function ReportsScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Relatórios</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.title}>Relatórios</Text>
+          <Text style={styles.subtitle}>Desempenho de vendas</Text>
+        </View>
         <View style={{ width: 36 }} />
       </View>
 
       <View style={styles.presetRow}>
-        {PRESETS.map((p) => (
-          <AnimatedPressable
-            key={p.key}
-            style={[styles.presetChip, preset === p.key && styles.presetChipActive]}
-            onPress={() => handleSelectPreset(p.key)}
-          >
-            <Text style={[styles.presetText, preset === p.key && styles.presetTextActive]}>
-              {p.label}
-            </Text>
-          </AnimatedPressable>
-        ))}
+        {PRESETS.map((p) =>
+          preset === p.key ? (
+            <AnimatedPressable key={p.key} style={styles.presetChipWrap} onPress={() => handleSelectPreset(p.key)}>
+              <LinearGradient
+                colors={[colors.emerald, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.presetChipActive}
+              >
+                <Text style={styles.presetTextActive}>{p.label}</Text>
+              </LinearGradient>
+            </AnimatedPressable>
+          ) : (
+            <AnimatedPressable
+              key={p.key}
+              style={[styles.presetChipWrap, styles.presetChip]}
+              onPress={() => handleSelectPreset(p.key)}
+            >
+              <Text style={styles.presetText}>{p.label}</Text>
+            </AnimatedPressable>
+          )
+        )}
       </View>
 
       {preset === 'custom' && (
@@ -101,7 +127,7 @@ export function ReportsScreen({ navigation }: Props) {
             <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
             <Text style={styles.dateFieldText}>{formatDateLabel(startDate.toISOString())}</Text>
           </TouchableOpacity>
-          <Text style={styles.dateSeparator}>até</Text>
+          <Ionicons name="arrow-forward" size={13} color={colors.textMuted} />
           <TouchableOpacity style={styles.dateField} onPress={() => setPickerTarget('end')}>
             <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
             <Text style={styles.dateFieldText}>{formatDateLabel(endDate.toISOString())}</Text>
@@ -126,20 +152,51 @@ export function ReportsScreen({ navigation }: Props) {
           end={{ x: 1, y: 1 }}
           style={styles.revenueCard}
         >
-          <Text style={styles.revenueLabel}>Faturamento do período</Text>
+          <View style={styles.revenueTopRow}>
+            <View>
+              <Text style={styles.revenueLabel}>Faturamento do período</Text>
+              <Text style={styles.revenuePeriod}>{periodLabel}</Text>
+            </View>
+            <View style={styles.revenueIconWrap}>
+              <Ionicons name="trending-up-outline" size={20} color={colors.emerald} />
+            </View>
+          </View>
           <Text style={styles.revenueValue}>{formatCurrency(report.totalRevenue)}</Text>
-          <Text style={styles.revenueSub}>{report.salesCount} mesa(s) fechada(s)</Text>
+          <View style={styles.revenueBadge}>
+            <Ionicons name="receipt-outline" size={13} color={colors.textMuted} />
+            <Text style={styles.revenueSub}>{report.salesCount} mesa(s) fechada(s)</Text>
+          </View>
         </LinearGradient>
 
         <Text style={styles.sectionTitle}>Formas de pagamento</Text>
         <View style={styles.paymentCard}>
-          {(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map((method) => (
-            <View key={method} style={styles.paymentRow}>
-              <View style={[styles.paymentDot, { backgroundColor: PAYMENT_LABELS[method].color }]} />
-              <Text style={styles.paymentLabel}>{PAYMENT_LABELS[method].label}</Text>
-              <Text style={styles.paymentValue}>{formatCurrency(report.paymentBreakdown[method])}</Text>
-            </View>
-          ))}
+          {(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map((method, index, arr) => {
+            const info = PAYMENT_LABELS[method];
+            const amount = report.paymentBreakdown[method];
+            const pct = report.totalRevenue > 0 ? Math.round((amount / report.totalRevenue) * 100) : 0;
+            return (
+              <View
+                key={method}
+                style={[styles.paymentRow, index === arr.length - 1 && { marginBottom: 0 }]}
+              >
+                <View style={styles.paymentRowTop}>
+                  <View style={styles.paymentLabelWrap}>
+                    <View style={[styles.paymentIconWrap, { backgroundColor: info.muted }]}>
+                      <Ionicons name={info.icon} size={13} color={info.color} />
+                    </View>
+                    <Text style={styles.paymentLabel}>{info.label}</Text>
+                  </View>
+                  <View style={styles.paymentValueWrap}>
+                    <Text style={styles.paymentValue}>{formatCurrency(amount)}</Text>
+                    <Text style={styles.paymentPct}>{pct}%</Text>
+                  </View>
+                </View>
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: info.color }]} />
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionTitle}>Itens mais vendidos</Text>
@@ -147,23 +204,26 @@ export function ReportsScreen({ navigation }: Props) {
           <EmptyState icon="stats-chart-outline" title="Sem vendas no período" />
         ) : (
           <View style={styles.topItemsCard}>
-            {report.topItems.map((item, index) => (
-              <View
-                key={item.menuItemId}
-                style={[
-                  styles.topItemRow,
-                  index === report.topItems.length - 1 && { borderBottomWidth: 0 },
-                ]}
-              >
-                <View style={styles.rankBadge}>
-                  <Text style={styles.rankText}>{index + 1}</Text>
+            {report.topItems.map((item, index) => {
+              const rank = RANK_STYLES[index] ?? RANK_STYLES[2];
+              return (
+                <View
+                  key={item.menuItemId}
+                  style={[
+                    styles.topItemRow,
+                    index === report.topItems.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
+                    <Text style={[styles.rankText, { color: rank.text }]}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.topItemName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.topItemQty}>{item.quantity}x</Text>
                 </View>
-                <Text style={styles.topItemName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.topItemQty}>{item.quantity}x</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -186,12 +246,22 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    alignItems: 'center',
   },
   title: {
     ...typography.h2,
     color: colors.textPrimary,
+  },
+  subtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   presetRow: {
     flexDirection: 'row',
@@ -199,8 +269,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginBottom: spacing.sm,
   },
-  presetChip: {
+  presetChipWrap: {
     flex: 1,
+    borderRadius: radius.full,
+  },
+  presetChip: {
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
     backgroundColor: colors.surface,
@@ -209,20 +282,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   presetChipActive: {
-    backgroundColor: colors.primaryMuted,
-    borderColor: colors.primary,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
     shadowColor: colors.primary,
     shadowOpacity: 0.35,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   presetText: {
     ...typography.caption,
     color: colors.textSecondary,
   },
   presetTextActive: {
-    color: colors.primary,
+    ...typography.caption,
+    color: colors.textInverse,
     fontWeight: '700',
   },
   dateRow: {
@@ -248,10 +323,6 @@ const styles = StyleSheet.create({
     ...typography.bodySm,
     color: colors.textPrimary,
   },
-  dateSeparator: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
   content: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
@@ -263,9 +334,27 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
+  revenueTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  revenueIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   revenueLabel: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  revenuePeriod: {
+    ...typography.bodySm,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   revenueValue: {
     ...typography.display,
@@ -273,12 +362,17 @@ const styles = StyleSheet.create({
     textShadowColor: colors.emeraldGlow,
     textShadowRadius: 14,
     textShadowOffset: { width: 0, height: 0 },
-    marginTop: spacing.xxs,
+    marginTop: spacing.sm,
+  },
+  revenueBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: spacing.xs,
   },
   revenueSub: {
     ...typography.bodySm,
     color: colors.textMuted,
-    marginTop: 2,
   },
   sectionTitle: {
     ...typography.h3,
@@ -292,26 +386,56 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    gap: spacing.sm,
   },
   paymentRow: {
+    marginBottom: spacing.md,
+  },
+  paymentRowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  paymentLabelWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
-  paymentDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+  paymentIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   paymentLabel: {
     ...typography.body,
     color: colors.textSecondary,
-    flex: 1,
+  },
+  paymentValueWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.xs,
   },
   paymentValue: {
     ...typography.h3,
     color: colors.textPrimary,
+  },
+  paymentPct: {
+    ...typography.caption,
+    color: colors.textMuted,
+    minWidth: 30,
+    textAlign: 'right',
+  },
+  barTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surfaceElevated,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   topItemsCard: {
     backgroundColor: colors.surface,
@@ -330,16 +454,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   rankBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primaryMuted,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankText: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '700',
   },
   topItemName: {

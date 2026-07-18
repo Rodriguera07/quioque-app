@@ -21,6 +21,15 @@ export type PaymentMethod = 'pix' | 'dinheiro' | 'debito' | 'credito';
 
 export type TableStatus = 'open' | 'closed';
 
+// Um pagamento individual recebido para a mesa. Sem split, uma única
+// entrada cobre o total; com split, uma entrada por pessoa.
+export interface SplitPayment {
+  id: string;
+  method: PaymentMethod;
+  amount: number;
+  paidAt: string; // ISO
+}
+
 export interface Table {
   id: string;
   label: string; // número ou nome da mesa
@@ -28,9 +37,11 @@ export interface Table {
   status: TableStatus;
   items: OrderItem[];
   serviceFeeEnabled: boolean;
+  splitEnabled: boolean;
+  splitCount: number; // só relevante quando splitEnabled
+  payments: SplitPayment[];
   openedAt: string; // ISO
   closedAt?: string; // ISO
-  paymentMethod?: PaymentMethod;
   subtotal?: number;
   serviceFeeAmount?: number;
   total?: number;
@@ -44,7 +55,7 @@ export interface ClosedSale {
   subtotal: number;
   serviceFeeAmount: number;
   total: number;
-  paymentMethod: PaymentMethod;
+  payments: SplitPayment[];
   openedAt: string;
   closedAt: string;
 }

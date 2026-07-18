@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
-import { PaymentMethod } from '../types';
+import { PaymentMethod, SplitPayment } from '../types';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EndDaySummary'>;
@@ -18,6 +18,14 @@ const PAYMENT_LABELS: Record<PaymentMethod, { label: string; icon: keyof typeof 
   debito: { label: 'Débito', icon: 'card-outline', color: colors.debit },
   credito: { label: 'Crédito', icon: 'card', color: colors.credit },
 };
+
+function describeSalePayments(payments: SplitPayment[]): string {
+  const uniqueMethods = Array.from(new Set(payments.map((p) => p.method)));
+  if (payments.length <= 1) {
+    return uniqueMethods.length > 0 ? PAYMENT_LABELS[uniqueMethods[0]].label : '—';
+  }
+  return `Dividido · ${payments.length} pessoas`;
+}
 
 export function EndDaySummaryScreen({ navigation, route }: Props) {
   const { summary } = route.params;
@@ -67,7 +75,7 @@ export function EndDaySummaryScreen({ navigation, route }: Props) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.saleLabel}>Mesa {sale.tableLabel}</Text>
                 <Text style={styles.saleSub}>
-                  {PAYMENT_LABELS[sale.paymentMethod].label} · {formatTime(sale.closedAt)}
+                  {describeSalePayments(sale.payments)} · {formatTime(sale.closedAt)}
                 </Text>
               </View>
               <Text style={styles.saleValue}>{formatCurrency(sale.total)}</Text>

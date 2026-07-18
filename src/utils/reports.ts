@@ -40,7 +40,9 @@ export function getPeriodReport(sales: ClosedSale[], startDate: Date, endDate: D
 
   filtered.forEach((sale) => {
     totalRevenue += sale.total;
-    paymentBreakdown[sale.paymentMethod] += sale.total;
+    sale.payments.forEach((payment) => {
+      paymentBreakdown[payment.method] += payment.amount;
+    });
     sale.items.forEach((item) => {
       const existing = itemCounts.get(item.menuItemId);
       if (existing) {

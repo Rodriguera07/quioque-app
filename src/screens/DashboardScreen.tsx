@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
@@ -23,6 +23,12 @@ import { formatCurrency } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
+const RANK_STYLES = [
+  { bg: colors.sandMuted, text: colors.sand },
+  { bg: 'rgba(155, 178, 189, 0.16)', text: colors.textSecondary },
+  { bg: colors.coralMuted, text: colors.coral },
+];
+
 export function DashboardScreen({ navigation }: Props) {
   const userName = useAuthStore((s) => s.userName);
   const logout = useAuthStore((s) => s.logout);
@@ -42,6 +48,7 @@ export function DashboardScreen({ navigation }: Props) {
     day: '2-digit',
     month: 'long',
   });
+  const initial = (userName ?? 'G').charAt(0).toUpperCase();
 
   const handleEndDay = async () => {
     if (openTables.length > 0) {
@@ -76,21 +83,31 @@ export function DashboardScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Olá, {userName ?? 'Gerente'}</Text>
-          <Text style={styles.date}>{capitalize(dateLabel)}</Text>
+        <View style={styles.headerLeft}>
+          <LinearGradient
+            colors={[colors.emerald, colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>{initial}</Text>
+          </LinearGradient>
+          <View>
+            <Text style={styles.greeting}>Olá, {userName ?? 'Gerente'}</Text>
+            <Text style={styles.date}>{capitalize(dateLabel)}</Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity
+          <AnimatedPressable
             style={styles.iconButton}
             accessibilityLabel="Ver relatórios"
             onPress={() => navigation.navigate('Reports')}
           >
-            <Ionicons name="bar-chart-outline" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} accessibilityLabel="Sair" onPress={logout}>
-            <Ionicons name="log-out-outline" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
+            <Ionicons name="bar-chart-outline" size={19} color={colors.textPrimary} />
+          </AnimatedPressable>
+          <AnimatedPressable style={styles.iconButton} accessibilityLabel="Sair" onPress={logout}>
+            <Ionicons name="log-out-outline" size={19} color={colors.textPrimary} />
+          </AnimatedPressable>
         </View>
       </View>
 
@@ -120,6 +137,12 @@ export function DashboardScreen({ navigation }: Props) {
       </View>
 
       <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
+        <LinearGradient
+          colors={[colors.coralMuted, 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.endDayIconWrap}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
         </View>
@@ -127,11 +150,16 @@ export function DashboardScreen({ navigation }: Props) {
           <Text style={styles.endDayTitle}>Encerrar / conferir dia</Text>
           <Text style={styles.endDaySub}>Fecha o caixa e reinicia o painel</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        <View style={styles.endDayChevronWrap}>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </View>
       </AnimatedPressable>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="flame-outline" size={16} color={colors.coral} />
+          <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
+        </View>
       </View>
 
       {topItems.length === 0 ? (
@@ -140,28 +168,34 @@ export function DashboardScreen({ navigation }: Props) {
         </View>
       ) : (
         <View style={styles.topItemsCard}>
-          {topItems.map((item, index) => (
-            <View
-              key={item.menuItemId}
-              style={[styles.topItemRow, index === topItems.length - 1 && { borderBottomWidth: 0 }]}
-            >
-              <View style={[styles.rankBadge, index === 0 && styles.rankBadgeFirst]}>
-                <Text style={[styles.rankText, index === 0 && styles.rankTextFirst]}>
-                  {index + 1}
+          {topItems.map((item, index) => {
+            const rank = RANK_STYLES[index] ?? RANK_STYLES[2];
+            return (
+              <View
+                key={item.menuItemId}
+                style={[styles.topItemRow, index === topItems.length - 1 && { borderBottomWidth: 0 }]}
+              >
+                <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
+                  <Text style={[styles.rankText, { color: rank.text }]}>{index + 1}</Text>
+                </View>
+                <Text style={styles.topItemName} numberOfLines={1}>
+                  {item.name}
                 </Text>
+                <Text style={styles.topItemQty}>{item.quantity}x</Text>
               </View>
-              <Text style={styles.topItemName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.topItemQty}>{item.quantity}x</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Mesas ativas</Text>
-        <Text style={styles.sectionCount}>{openTables.length}</Text>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="restaurant-outline" size={16} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Mesas ativas</Text>
+        </View>
+        <View style={styles.sectionCountBadge}>
+          <Text style={styles.sectionCount}>{openTables.length}</Text>
+        </View>
       </View>
 
       {openTables.length === 0 ? (
@@ -219,17 +253,40 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.emerald,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  avatarText: {
+    ...typography.h3,
+    color: colors.textInverse,
   },
   greeting: {
     ...typography.h1,
+    fontSize: 22,
     color: colors.textPrimary,
   },
   date: {
     ...typography.body,
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   headerActions: {
     flexDirection: 'row',
@@ -260,6 +317,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.sm,
+    overflow: 'hidden',
   },
   endDayIconWrap: {
     width: 32,
@@ -278,6 +336,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 1,
   },
+  endDayChevronWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,13 +351,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.xs,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   sectionTitle: {
     ...typography.h3,
     color: colors.textPrimary,
   },
+  sectionCountBadge: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.full,
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sectionCount: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.textSecondary,
+    fontWeight: '700',
   },
   topItemsCard: {
     backgroundColor: colors.surface,
@@ -323,23 +404,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   rankBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.emeraldMuted,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rankBadgeFirst: {
-    backgroundColor: colors.sandMuted,
-  },
   rankText: {
     ...typography.caption,
-    color: colors.emerald,
     fontWeight: '700',
-  },
-  rankTextFirst: {
-    color: colors.sand,
   },
   topItemName: {
     ...typography.body,

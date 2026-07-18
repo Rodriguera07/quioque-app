@@ -1,11 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { ClosedSale, DaySummary, MenuItem, OrderItem, PaymentMethod, Table } from '../types';
+import {
+  ClosedSale,
+  DaySummary,
+  MenuItem,
+  OrderItem,
+  PaymentMethod,
+  SplitPayment,
+  Table,
+} from '../types';
 import { formatDateKey } from '../utils/format';
 import { generateId } from '../utils/id';
 
 const SERVICE_FEE_RATE = 0.1;
+const MIN_SPLIT_COUNT = 2;
+const MAX_SPLIT_COUNT = 20;
+const PAID_EPSILON = 0.004; // margem de segurança para comparação de centavos
 
 interface PosState {
   tables: Table[];
@@ -19,15 +30,38 @@ interface PosState {
   decrementItem: (tableId: string, orderItemId: string) => void;
   removeItem: (tableId: string, orderItemId: string) => void;
   toggleServiceFee: (tableId: string) => void;
-  closeTable: (tableId: string, paymentMethod: PaymentMethod) => void;
+  toggleSplit: (tableId: string) => void;
+  setSplitCount: (tableId: string, count: number) => void;
+  recordPayment: (tableId: string, method: PaymentMethod) => void;
+  closeTable: (tableId: string) => void;
   endDay: () => DaySummary | null;
 }
 
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 function computeTotals(items: OrderItem[], serviceFeeEnabled: boolean) {
-  const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const serviceFeeAmount = serviceFeeEnabled ? subtotal * SERVICE_FEE_RATE : 0;
-  const total = subtotal + serviceFeeAmount;
+  const subtotal = round2(items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0));
+  const serviceFeeAmount = serviceFeeEnabled ? round2(subtotal * SERVICE_FEE_RATE) : 0;
+  const total = round2(subtotal + serviceFeeAmount);
   return { subtotal, serviceFeeAmount, total };
+}
+
+// Quanto será cobrado no PRÓXIMO pagamento registrado para a mesa. Sem
+// split, é o valor restante inteiro (fecha em um único pagamento). Com
+// split, é o valor por pessoa — exceto no último pagamento, que absorve
+// o resto do arredondamento para que a soma bata exatamente com o total.
+function computeNextPaymentAmount(table: Table): number {
+  const { total } = computeTotals(table.items, table.serviceFeeEnabled);
+  const paidTotal = round2(table.payments.reduce((sum, p) => sum + p.amount, 0));
+  const remaining = Math.max(0, round2(total - paidTotal));
+
+  if (!table.splitEnabled) return remaining;
+
+  const unit = round2(total / table.splitCount);
+  const isLastPerson = table.payments.length >= table.splitCount - 1;
+  return isLastPerson ? remaining : Math.min(unit, remaining);
 }
 
 export const usePosStore = create<PosState>()(
@@ -47,6 +81,9 @@ export const usePosStore = create<PosState>()(
           status: 'open',
           items: [],
           serviceFeeEnabled: false,
+          splitEnabled: false,
+          splitCount: MIN_SPLIT_COUNT,
+          payments: [],
           openedAt: new Date().toISOString(),
         };
         set((state) => ({ tables: [...state.tables, newTable] }));
@@ -128,7 +165,48 @@ export const usePosStore = create<PosState>()(
         }));
       },
 
-      closeTable: (tableId, paymentMethod) => {
+      toggleSplit: (tableId) => {
+        set((state) => ({
+          tables: state.tables.map((table) =>
+            table.id !== tableId || table.payments.length > 0
+              ? table
+              : { ...table, splitEnabled: !table.splitEnabled }
+          ),
+        }));
+      },
+
+      setSplitCount: (tableId, count) => {
+        const clamped = Math.min(MAX_SPLIT_COUNT, Math.max(MIN_SPLIT_COUNT, Math.round(count)));
+        set((state) => ({
+          tables: state.tables.map((table) =>
+            table.id !== tableId || table.payments.length > 0
+              ? table
+              : { ...table, splitCount: clamped }
+          ),
+        }));
+      },
+
+      recordPayment: (tableId, method) => {
+        const table = get().tables.find((t) => t.id === tableId);
+        if (!table) return;
+        const amount = computeNextPaymentAmount(table);
+        if (amount <= 0) return;
+
+        const payment: SplitPayment = {
+          id: generateId('pay'),
+          method,
+          amount,
+          paidAt: new Date().toISOString(),
+        };
+
+        set((state) => ({
+          tables: state.tables.map((t) =>
+            t.id !== tableId ? t : { ...t, payments: [...t.payments, payment] }
+          ),
+        }));
+      },
+
+      closeTable: (tableId) => {
         const table = get().tables.find((t) => t.id === tableId);
         if (!table || table.items.length === 0) return;
 
@@ -136,6 +214,9 @@ export const usePosStore = create<PosState>()(
           table.items,
           table.serviceFeeEnabled
         );
+        const paidTotal = round2(table.payments.reduce((sum, p) => sum + p.amount, 0));
+        if (paidTotal + PAID_EPSILON < total) return; // ainda falta pagamento
+
         const closedAt = new Date().toISOString();
 
         const closedSale: ClosedSale = {
@@ -146,7 +227,7 @@ export const usePosStore = create<PosState>()(
           subtotal,
           serviceFeeAmount,
           total,
-          paymentMethod,
+          payments: table.payments,
           openedAt: table.openedAt,
           closedAt,
         };
@@ -155,7 +236,7 @@ export const usePosStore = create<PosState>()(
           closedSalesToday: [...state.closedSalesToday, closedSale],
           tables: state.tables.map((t) =>
             t.id === tableId
-              ? { ...t, status: 'closed', closedAt, paymentMethod, subtotal, serviceFeeAmount, total }
+              ? { ...t, status: 'closed', closedAt, subtotal, serviceFeeAmount, total }
               : t
           ),
         }));
@@ -176,13 +257,17 @@ export const usePosStore = create<PosState>()(
         };
         let totalRevenue = 0;
         closedSalesToday.forEach((sale) => {
-          paymentBreakdown[sale.paymentMethod] += sale.total;
+          sale.payments.forEach((payment) => {
+            paymentBreakdown[payment.method] = round2(
+              paymentBreakdown[payment.method] + payment.amount
+            );
+          });
           totalRevenue += sale.total;
         });
 
         const summary: DaySummary = {
           date: currentDay,
-          totalRevenue,
+          totalRevenue: round2(totalRevenue),
           sales: closedSalesToday,
           closedAt: new Date().toISOString(),
           paymentBreakdown,
@@ -223,6 +308,34 @@ export function getTodayRevenue(closedSalesToday: ClosedSale[]): number {
   return closedSalesToday.reduce((sum, sale) => sum + sale.total, 0);
 }
 
+export function getPaidTotal(table: Table): number {
+  return round2(table.payments.reduce((sum, p) => sum + p.amount, 0));
+}
+
+export function getRemainingAmount(table: Table): number {
+  const { total } = computeTotals(table.items, table.serviceFeeEnabled);
+  return Math.max(0, round2(total - getPaidTotal(table)));
+}
+
+// Valor por pessoa "teórico" (total / splitCount), usado para exibição no
+// card de resumo. Arredondado para 2 casas decimais.
+export function getSplitUnitAmount(table: Table): number {
+  const { total } = computeTotals(table.items, table.serviceFeeEnabled);
+  return round2(total / table.splitCount);
+}
+
+export function getPaidPeopleCount(table: Table): number {
+  return table.payments.length;
+}
+
+export function isTableFullyPaid(table: Table): boolean {
+  return getRemainingAmount(table) <= PAID_EPSILON;
+}
+
+export function getNextPaymentAmount(table: Table): number {
+  return computeNextPaymentAmount(table);
+}
+
 export interface TopSellingItem {
   menuItemId: string;
   name: string;
@@ -261,4 +374,4 @@ export function getTopSellingItems(
     .slice(0, limit);
 }
 
-export { SERVICE_FEE_RATE };
+export { MAX_SPLIT_COUNT, MIN_SPLIT_COUNT, SERVICE_FEE_RATE };
