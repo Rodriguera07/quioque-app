@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   revenueCard: {
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(0,230,160,0.25)',
+    borderColor: colors.emeraldGlow,
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },

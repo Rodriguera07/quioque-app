@@ -51,7 +51,7 @@ export function LoginScreen() {
       <View style={styles.container}>
         <View style={styles.brandWrap}>
           <LinearGradient
-            colors={[colors.emeraldMuted, colors.surfaceElevated]}
+            colors={[colors.emeraldMuted, colors.coralMuted]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.logoCircle}

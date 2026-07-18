@@ -1,45 +1,55 @@
+// "Beach bar at night" theme: deep ocean-night background, turquoise +
+// sunset-coral accents, golden-sand details.
 export const colors = {
-  // Base — grafite escuro (fintech dark)
-  background: '#0A0D12',
-  backgroundAlt: '#0F1319',
-  surface: '#151A22',
-  surfaceElevated: '#1C222D',
-  surfaceHighlight: '#232A37',
-  border: '#262E3B',
-  borderLight: '#323C4C',
+  // Base — noite de praia (grafite azulado profundo)
+  background: '#081119',
+  backgroundAlt: '#0C1822',
+  surface: '#101F2B',
+  surfaceElevated: '#162A38',
+  surfaceHighlight: '#1E3A49',
+  border: '#1F3742',
+  borderLight: '#2C4E5C',
 
-  // Marca
-  primary: '#3D8BFF', // azul neon
-  primaryMuted: '#1E3A5F',
-  primaryGlow: 'rgba(61, 139, 255, 0.18)',
+  // Marca — mar / turquesa
+  primary: '#22B8CF', // teal do oceano — interativo geral
+  primaryMuted: '#123640',
+  primaryGlow: 'rgba(34, 184, 207, 0.2)',
 
-  emerald: '#00E6A0', // verde esmeralda — faturamento / positivo
-  emeraldMuted: '#0D3B2E',
-  emeraldGlow: 'rgba(0, 230, 160, 0.16)',
+  emerald: '#2DD4BF', // turquesa vivo — faturamento / positivo / sucesso
+  emeraldMuted: '#0F3A35',
+  emeraldGlow: 'rgba(45, 212, 191, 0.2)',
+
+  coral: '#FF8A5C', // laranja de pôr do sol — atenção / destaque quente
+  coralMuted: '#3D2418',
+  coralGlow: 'rgba(255, 138, 92, 0.2)',
+
+  sand: '#E8C077', // areia dourada — detalhes / dinheiro físico
+  sandMuted: '#3A3016',
+  sandGlow: 'rgba(232, 192, 119, 0.18)',
 
   // Semânticas
-  success: '#00E6A0',
+  success: '#2DD4BF',
   danger: '#FF5C72',
   dangerMuted: '#3B1420',
-  warning: '#FFB020',
-  warningMuted: '#3D2C0A',
-  info: '#3D8BFF',
+  warning: '#FF8A5C',
+  warningMuted: '#3D2418',
+  info: '#22B8CF',
 
   // Texto
-  textPrimary: '#F5F7FA',
-  textSecondary: '#9AA4B8',
-  textMuted: '#5E6779',
-  textInverse: '#0A0D12',
+  textPrimary: '#F4F7F7',
+  textSecondary: '#9BB2BD',
+  textMuted: '#5B7581',
+  textInverse: '#071219',
 
   // Formas de pagamento
-  pix: '#00E6A0',
-  cash: '#FFB020',
-  debit: '#3D8BFF',
-  credit: '#C084FC',
+  pix: '#2DD4BF',
+  cash: '#E8C077',
+  debit: '#22B8CF',
+  credit: '#FF8A5C',
 
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(4, 6, 10, 0.72)',
+  overlay: 'rgba(4, 9, 12, 0.72)',
 } as const;
 
 export type AppColors = typeof colors;

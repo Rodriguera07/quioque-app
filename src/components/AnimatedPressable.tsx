@@ -8,6 +8,8 @@ import {
   ViewStyle,
 } from 'react-native';
 
+const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
+
 interface Props extends Omit<PressableProps, 'style'> {
   style?: StyleProp<ViewStyle>;
   scaleTo?: number;
@@ -46,15 +48,14 @@ export function AnimatedPressable({
   };
 
   return (
-    <Pressable
+    <AnimatedPressableBase
       disabled={disabled}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      style={[style, { transform: [{ scale }] }, disabled ? { opacity: 0.5 } : null]}
       {...rest}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }, disabled && { opacity: 0.5 }]}>
-        {children}
-      </Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressableBase>
   );
 }

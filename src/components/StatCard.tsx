@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardHighlight: {
-    borderColor: 'rgba(0,230,160,0.3)',
+    borderColor: colors.emeraldGlow,
   },
   iconWrap: {
     width: 32,

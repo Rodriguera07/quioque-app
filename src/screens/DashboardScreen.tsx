@@ -145,8 +145,10 @@ export function DashboardScreen({ navigation }: Props) {
               key={item.menuItemId}
               style={[styles.topItemRow, index === topItems.length - 1 && { borderBottomWidth: 0 }]}
             >
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>{index + 1}</Text>
+              <View style={[styles.rankBadge, index === 0 && styles.rankBadgeFirst]}>
+                <Text style={[styles.rankText, index === 0 && styles.rankTextFirst]}>
+                  {index + 1}
+                </Text>
               </View>
               <Text style={styles.topItemName} numberOfLines={1}>
                 {item.name}
@@ -184,7 +186,7 @@ export function DashboardScreen({ navigation }: Props) {
 
       <AnimatedPressable style={styles.fabWrap} onPress={() => navigation.navigate('OpenTable')}>
         <LinearGradient
-          colors={[colors.emerald, '#00C98C']}
+          colors={[colors.emerald, colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fab}
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warningMuted,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,176,32,0.25)',
+    borderColor: colors.coralGlow,
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.sm,
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,176,32,0.15)',
+    backgroundColor: colors.coralMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,10 +330,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  rankBadgeFirst: {
+    backgroundColor: colors.sandMuted,
+  },
   rankText: {
     ...typography.caption,
     color: colors.emerald,
     fontWeight: '700',
+  },
+  rankTextFirst: {
+    color: colors.sand,
   },
   topItemName: {
     ...typography.body,
