@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { getTableCurrentTotal } from '../context/usePosStore';
 import { colors, radius, spacing, typography } from '../theme';
 import { Table } from '../types';
 import { formatCurrency, formatTime } from '../utils/format';
+import { AnimatedPressable } from './AnimatedPressable';
+import { PulseDot } from './PulseDot';
 
 interface Props {
   table: Table;
@@ -16,12 +18,12 @@ export function TableCard({ table, onPress }: Props) {
   const itemCount = table.items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.75} onPress={onPress}>
+    <AnimatedPressable style={styles.card} onPress={onPress}>
       <View style={styles.topRow}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{table.label}</Text>
         </View>
-        <View style={styles.liveDot} />
+        <PulseDot />
       </View>
 
       <Text style={styles.total}>{formatCurrency(total)}</Text>
@@ -43,7 +45,7 @@ export function TableCard({ table, onPress }: Props) {
           </>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -71,12 +73,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.primary,
     fontWeight: '700',
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.emerald,
   },
   total: {
     ...typography.h2,

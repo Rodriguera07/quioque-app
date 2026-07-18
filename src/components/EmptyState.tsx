@@ -32,6 +32,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
@@ -9,20 +10,47 @@ interface Props {
   icon: keyof typeof Ionicons.glyphMap;
   accent?: string;
   accentGlow?: string;
+  highlight?: boolean;
 }
 
-export function StatCard({ label, value, icon, accent = colors.primary, accentGlow = colors.primaryGlow }: Props) {
-  return (
-    <View style={styles.card}>
-      <View style={[styles.iconWrap, { backgroundColor: accentGlow }]}>
-        <Ionicons name={icon} size={18} color={accent} />
+export function StatCard({
+  label,
+  value,
+  icon,
+  accent = colors.primary,
+  accentGlow = colors.primaryGlow,
+  highlight = false,
+}: Props) {
+  const content = (
+    <>
+      <View style={[styles.iconWrap, { backgroundColor: highlight ? 'rgba(255,255,255,0.12)' : accentGlow }]}>
+        <Ionicons name={icon} size={18} color={highlight ? colors.emerald : accent} />
       </View>
-      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+      <Text
+        style={[styles.value, highlight && styles.valueHighlight]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {value}
       </Text>
-      <Text style={styles.label}>{label}</Text>
-    </View>
+      <Text style={[styles.label, highlight && styles.labelHighlight]}>{label}</Text>
+    </>
   );
+
+  if (highlight) {
+    return (
+      <LinearGradient
+        colors={[colors.emeraldMuted, colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.card, styles.cardHighlight]}
+      >
+        {content}
+      </LinearGradient>
+    );
+  }
+
+  return <View style={styles.card}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -36,6 +64,9 @@ const styles = StyleSheet.create({
     minHeight: 108,
     justifyContent: 'space-between',
   },
+  cardHighlight: {
+    borderColor: 'rgba(0,230,160,0.3)',
+  },
   iconWrap: {
     width: 32,
     height: 32,
@@ -48,9 +79,18 @@ const styles = StyleSheet.create({
     ...typography.h2,
     color: colors.textPrimary,
   },
+  valueHighlight: {
+    color: colors.emerald,
+    textShadowColor: colors.emeraldGlow,
+    textShadowRadius: 12,
+    textShadowOffset: { width: 0, height: 0 },
+  },
   label: {
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  labelHighlight: {
+    color: colors.textSecondary,
   },
 });

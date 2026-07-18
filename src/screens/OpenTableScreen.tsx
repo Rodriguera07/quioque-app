@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { usePosStore } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
@@ -64,13 +65,13 @@ export function OpenTableScreen({ navigation }: Props) {
 
           <View style={styles.quickRow}>
             {QUICK_LABELS.map((q) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={q}
                 style={[styles.chip, label === q && styles.chipActive]}
                 onPress={() => setLabel(q)}
               >
                 <Text style={[styles.chipText, label === q && styles.chipTextActive]}>{q}</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </View>
 
@@ -155,6 +156,11 @@ const styles = StyleSheet.create({
   chipActive: {
     backgroundColor: colors.primaryMuted,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   chipText: {
     ...typography.bodySm,

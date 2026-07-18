@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -41,11 +42,22 @@ export function LoginScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <LinearGradient
+        colors={[colors.backgroundAlt, colors.background, colors.background]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.flex}
+      >
       <View style={styles.container}>
         <View style={styles.brandWrap}>
-          <View style={styles.logoCircle}>
+          <LinearGradient
+            colors={[colors.emeraldMuted, colors.surfaceElevated]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoCircle}
+          >
             <Ionicons name="storefront" size={30} color={colors.emerald} />
-          </View>
+          </LinearGradient>
           <Text style={styles.brand}>Quiosque PDV</Text>
           <Text style={styles.brandSub}>Painel de gestão do gerente</Text>
         </View>
@@ -96,6 +108,7 @@ export function LoginScreen() {
           <Text style={styles.hint}>Credenciais de teste: admin / admin123</Text>
         </View>
       </View>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
@@ -115,10 +128,14 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: colors.emeraldMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
+    shadowColor: colors.emerald,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
   },
   brand: {
     ...typography.h1,

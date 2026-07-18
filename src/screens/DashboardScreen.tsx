@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
 import { StatCard } from '../components/StatCard';
 import { TableCard } from '../components/TableCard';
@@ -99,6 +101,7 @@ export function DashboardScreen({ navigation }: Props) {
           icon="trending-up-outline"
           accent={colors.emerald}
           accentGlow={colors.emeraldGlow}
+          highlight
         />
         <StatCard
           label="Mesas abertas"
@@ -116,7 +119,7 @@ export function DashboardScreen({ navigation }: Props) {
         />
       </View>
 
-      <TouchableOpacity style={styles.endDayBar} onPress={handleEndDay} activeOpacity={0.8}>
+      <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
         <View style={styles.endDayIconWrap}>
           <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
         </View>
@@ -125,7 +128,7 @@ export function DashboardScreen({ navigation }: Props) {
           <Text style={styles.endDaySub}>Fecha o caixa e reinicia o painel</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-      </TouchableOpacity>
+      </AnimatedPressable>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
@@ -179,14 +182,17 @@ export function DashboardScreen({ navigation }: Props) {
 
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate('OpenTable')}
-      >
-        <Ionicons name="add" size={22} color={colors.textInverse} />
-        <Text style={styles.fabLabel}>Abrir Nova Mesa</Text>
-      </TouchableOpacity>
+      <AnimatedPressable style={styles.fabWrap} onPress={() => navigation.navigate('OpenTable')}>
+        <LinearGradient
+          colors={[colors.emerald, '#00C98C']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fab}
+        >
+          <Ionicons name="add" size={22} color={colors.textInverse} />
+          <Text style={styles.fabLabel}>Abrir Nova Mesa</Text>
+        </LinearGradient>
+      </AnimatedPressable>
     </SafeAreaView>
   );
 }
@@ -342,22 +348,24 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     bottom: spacing.lg,
     alignSelf: 'center',
+    borderRadius: radius.full,
+    shadowColor: colors.emerald,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  fab: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.emerald,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radius.full,
     gap: spacing.xs,
-    shadowColor: colors.emerald,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
   },
   fabLabel: {
     ...typography.h3,

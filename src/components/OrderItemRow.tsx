@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { CATEGORY_ICONS } from '../data/menu';
 import { colors, radius, spacing, typography } from '../theme';
 import { OrderItem } from '../types';
 import { formatCurrency } from '../utils/format';
@@ -16,6 +17,9 @@ interface Props {
 export function OrderItemRow({ item, editable = true, onIncrement, onDecrement, onRemove }: Props) {
   return (
     <View style={styles.row}>
+      <View style={styles.iconWrap}>
+        <Ionicons name={CATEGORY_ICONS[item.category]} size={16} color={colors.primary} />
+      </View>
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2}>
           {item.name}
@@ -58,6 +62,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: spacing.sm,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   info: {
     flex: 1,

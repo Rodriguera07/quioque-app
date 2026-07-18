@@ -1,4 +1,4 @@
-export type MenuCategory = 'bebidas' | 'porcoes' | 'pratos' | 'sobremesas';
+export type MenuCategory = 'bebidas' | 'drinks' | 'doses' | 'porcoes' | 'pasteis';
 
 export interface MenuItem {
   id: string;

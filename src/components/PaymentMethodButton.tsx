@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
+import { AnimatedPressable } from './AnimatedPressable';
 
 interface Props {
   label: string;
@@ -13,14 +14,24 @@ interface Props {
 
 export function PaymentMethodButton({ label, icon, color, selected = false, onPress }: Props) {
   return (
-    <TouchableOpacity
-      style={[styles.card, selected && { borderColor: color, backgroundColor: `${color}22` }]}
-      activeOpacity={0.8}
+    <AnimatedPressable
+      style={[
+        styles.card,
+        selected && {
+          borderColor: color,
+          backgroundColor: `${color}1F`,
+          shadowColor: color,
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        },
+      ]}
       onPress={onPress}
     >
       <Ionicons name={icon} size={26} color={color} />
       <Text style={styles.label}>{label}</Text>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 

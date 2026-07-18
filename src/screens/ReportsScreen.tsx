@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
 import { usePosStore } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
@@ -81,7 +83,7 @@ export function ReportsScreen({ navigation }: Props) {
 
       <View style={styles.presetRow}>
         {PRESETS.map((p) => (
-          <TouchableOpacity
+          <AnimatedPressable
             key={p.key}
             style={[styles.presetChip, preset === p.key && styles.presetChipActive]}
             onPress={() => handleSelectPreset(p.key)}
@@ -89,7 +91,7 @@ export function ReportsScreen({ navigation }: Props) {
             <Text style={[styles.presetText, preset === p.key && styles.presetTextActive]}>
               {p.label}
             </Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         ))}
       </View>
 
@@ -118,11 +120,16 @@ export function ReportsScreen({ navigation }: Props) {
       )}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.revenueCard}>
+        <LinearGradient
+          colors={[colors.emeraldMuted, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.revenueCard}
+        >
           <Text style={styles.revenueLabel}>Faturamento do período</Text>
           <Text style={styles.revenueValue}>{formatCurrency(report.totalRevenue)}</Text>
           <Text style={styles.revenueSub}>{report.salesCount} mesa(s) fechada(s)</Text>
-        </View>
+        </LinearGradient>
 
         <Text style={styles.sectionTitle}>Formas de pagamento</Text>
         <View style={styles.paymentCard}>
@@ -204,6 +211,11 @@ const styles = StyleSheet.create({
   presetChipActive: {
     backgroundColor: colors.primaryMuted,
     borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   presetText: {
     ...typography.caption,
@@ -245,7 +257,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   revenueCard: {
-    backgroundColor: colors.emeraldMuted,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(0,230,160,0.25)',
@@ -259,6 +270,9 @@ const styles = StyleSheet.create({
   revenueValue: {
     ...typography.display,
     color: colors.emerald,
+    textShadowColor: colors.emeraldGlow,
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
     marginTop: spacing.xxs,
   },
   revenueSub: {

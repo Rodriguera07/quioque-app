@@ -155,6 +155,9 @@ const styles = StyleSheet.create({
   totalValue: {
     ...typography.h1,
     color: colors.emerald,
+    textShadowColor: colors.emeraldGlow,
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
   },
   sectionTitle: {
     ...typography.h3,

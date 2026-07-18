@@ -1,24 +1,19 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableOpacityProps,
-  ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, PressableProps, StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
+import { AnimatedPressable } from './AnimatedPressable';
 
 type Variant = 'primary' | 'emerald' | 'outline' | 'ghost' | 'danger';
 type Size = 'md' | 'lg';
 
-interface Props extends TouchableOpacityProps {
+interface Props extends Omit<PressableProps, 'style'> {
   label: string;
   variant?: Variant;
   size?: Size;
   loading?: boolean;
   icon?: React.ReactNode;
   fullWidth?: boolean;
+  style?: ViewStyle;
 }
 
 export function Button({
@@ -36,16 +31,14 @@ export function Button({
   const isDisabled = disabled || loading;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
+    <AnimatedPressable
       disabled={isDisabled}
       style={[
         styles.base,
         size === 'lg' ? styles.lg : styles.md,
         variantStyle.container,
         fullWidth && styles.fullWidth,
-        isDisabled && styles.disabled,
-        style as ViewStyle,
+        style,
       ]}
       {...rest}
     >
@@ -59,17 +52,31 @@ export function Button({
           </Text>
         </>
       )}
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
 const variantStyles: Record<Variant, { container: ViewStyle; text: { color: string } }> = {
   primary: {
-    container: { backgroundColor: colors.primary },
+    container: {
+      backgroundColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
     text: { color: colors.white },
   },
   emerald: {
-    container: { backgroundColor: colors.emerald },
+    container: {
+      backgroundColor: colors.emerald,
+      shadowColor: colors.emerald,
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
     text: { color: colors.textInverse },
   },
   outline: {
@@ -107,9 +114,6 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
-  },
-  disabled: {
-    opacity: 0.5,
   },
   label: {
     ...typography.h3,

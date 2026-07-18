@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,11 +33,16 @@ export function EndDaySummaryScreen({ navigation, route }: Props) {
           {formatDateLabel(summary.date + 'T00:00:00')} · fechado às {formatTime(summary.closedAt)}
         </Text>
 
-        <View style={styles.revenueCard}>
+        <LinearGradient
+          colors={[colors.emeraldMuted, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.revenueCard}
+        >
           <Text style={styles.revenueLabel}>Faturamento total</Text>
           <Text style={styles.revenueValue}>{formatCurrency(summary.totalRevenue)}</Text>
           <Text style={styles.revenueSub}>{summary.sales.length} mesa(s) atendida(s)</Text>
-        </View>
+        </LinearGradient>
 
         <Text style={styles.sectionTitle}>Formas de pagamento</Text>
         <View style={styles.paymentCard}>
@@ -107,7 +113,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   revenueCard: {
-    backgroundColor: colors.emeraldMuted,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: 'rgba(0,230,160,0.25)',
@@ -123,6 +128,9 @@ const styles = StyleSheet.create({
     ...typography.display,
     color: colors.emerald,
     marginTop: spacing.xxs,
+    textShadowColor: colors.emeraldGlow,
+    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 0 },
   },
   revenueSub: {
     ...typography.bodySm,
