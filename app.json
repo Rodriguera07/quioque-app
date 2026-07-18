@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "Aplicativo-quiosque-tmp",
-    "slug": "Aplicativo-quiosque-tmp",
+    "name": "Quiosque PDV",
+    "slug": "quiosque-pdv",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0D12",
     "ios": {
       "supportsTablet": true
     },
@@ -20,6 +21,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-status-bar",
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
