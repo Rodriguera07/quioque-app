@@ -6,7 +6,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
-import { StatCard } from '../components/StatCard';
+import { PulseDot } from '../components/PulseDot';
+import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { TableCard } from '../components/TableCard';
 import { useAuthStore } from '../context/useAuthStore';
 import {
@@ -16,20 +17,17 @@ import {
   getTopSellingItems,
   usePosStore,
 } from '../context/usePosStore';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { confirmAlert, showAlert } from '../utils/alert';
 import { formatCurrency } from '../utils/format';
+import { useTick } from '../hooks/useTick';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
-const RANK_STYLES = [
-  { bg: colors.sandMuted, text: colors.sand },
-  { bg: 'rgba(155, 178, 189, 0.16)', text: colors.textSecondary },
-  { bg: colors.coralMuted, text: colors.coral },
-];
-
 export function DashboardScreen({ navigation }: Props) {
+  useTick(30000); // mantém o tempo decorrido das mesas atualizado
+
   const userName = useAuthStore((s) => s.userName);
   const logout = useAuthStore((s) => s.logout);
 
@@ -41,6 +39,8 @@ export function DashboardScreen({ navigation }: Props) {
   const closedTables = getClosedTablesToday(tables);
   const revenue = getTodayRevenue(closedSalesToday);
   const topItems = getTopSellingItems(tables, closedSalesToday, 5);
+  const topMax = topItems[0]?.quantity ?? 1;
+  const avgTicket = closedTables.length > 0 ? revenue / closedTables.length : 0;
 
   const today = new Date();
   const dateLabel = today.toLocaleDateString('pt-BR', {
@@ -111,55 +111,38 @@ export function DashboardScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <View style={styles.statsRow}>
-        <StatCard
-          label="Faturamento hoje"
-          value={formatCurrency(revenue)}
-          icon="trending-up-outline"
-          accent={colors.emerald}
-          accentGlow={colors.emeraldGlow}
-          highlight
-        />
-        <StatCard
-          label="Mesas abertas"
-          value={String(openTables.length)}
-          icon="restaurant-outline"
-          accent={colors.primary}
-          accentGlow={colors.primaryGlow}
-        />
-        <StatCard
-          label="Mesas fechadas"
-          value={String(closedTables.length)}
-          icon="checkmark-done-outline"
-          accent={colors.textSecondary}
-          accentGlow={colors.surfaceElevated}
-        />
+      <View style={styles.receipt}>
+        <View style={styles.receiptTopRow}>
+          <Text style={styles.receiptLabel}>FATURAMENTO DE HOJE</Text>
+          <View style={styles.statusPill}>
+            <PulseDot size={6} />
+            <Text style={styles.statusText}>caixa aberto</Text>
+          </View>
+        </View>
+        <Text style={styles.receiptValue}>{formatCurrency(revenue)}</Text>
+        <View style={styles.receiptStatsRow}>
+          <View style={styles.receiptStat}>
+            <Text style={styles.receiptStatValue}>{openTables.length}</Text>
+            <Text style={styles.receiptStatLabel}>em atendimento</Text>
+          </View>
+          <View style={styles.receiptStatDivider} />
+          <View style={styles.receiptStat}>
+            <Text style={styles.receiptStatValue}>{closedTables.length}</Text>
+            <Text style={styles.receiptStatLabel}>fechadas hoje</Text>
+          </View>
+          <View style={styles.receiptStatDivider} />
+          <View style={styles.receiptStat}>
+            <Text style={styles.receiptStatValue}>
+              {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+            <Text style={styles.receiptStatLabel}>ticket médio</Text>
+          </View>
+        </View>
       </View>
+      <ReceiptTornEdge />
 
-      <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
-        <LinearGradient
-          colors={[colors.coralMuted, 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.endDayIconWrap}>
-          <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.endDayTitle}>Encerrar / conferir dia</Text>
-          <Text style={styles.endDaySub}>Fecha o caixa e reinicia o painel</Text>
-        </View>
-        <View style={styles.endDayChevronWrap}>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </View>
-      </AnimatedPressable>
-
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="flame-outline" size={16} color={colors.coral} />
-          <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
-        </View>
+      <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+        <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
       </View>
 
       {topItems.length === 0 ? (
@@ -169,65 +152,68 @@ export function DashboardScreen({ navigation }: Props) {
       ) : (
         <View style={styles.topItemsCard}>
           {topItems.map((item, index) => {
-            const rank = RANK_STYLES[index] ?? RANK_STYLES[2];
+            const pct = Math.max(4, Math.round((item.quantity / topMax) * 100));
             return (
-              <View
-                key={item.menuItemId}
-                style={[styles.topItemRow, index === topItems.length - 1 && { borderBottomWidth: 0 }]}
-              >
-                <View style={[styles.rankBadge, { backgroundColor: rank.bg }]}>
-                  <Text style={[styles.rankText, { color: rank.text }]}>{index + 1}</Text>
+              <View key={item.menuItemId} style={styles.topItemRow}>
+                <Text style={styles.topItemRank}>{index + 1}</Text>
+                <View style={styles.topItemBody}>
+                  <Text style={styles.topItemName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <View style={styles.topItemBarTrack}>
+                    <View style={[styles.topItemBarFill, { width: `${pct}%` }]} />
+                  </View>
                 </View>
-                <Text style={styles.topItemName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.topItemQty}>{item.quantity}x</Text>
+                <Text style={styles.topItemQty}>{item.quantity}×</Text>
               </View>
             );
           })}
         </View>
       )}
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="restaurant-outline" size={16} color={colors.primary} />
-          <Text style={styles.sectionTitle}>Mesas ativas</Text>
+      <View style={styles.tablesCard}>
+        <View style={styles.tablesCardHeader}>
+          <Text style={styles.sectionTitle}>Mesas abertas</Text>
+          <Text style={styles.tablesCardCount}>{openTables.length}</Text>
         </View>
-        <View style={styles.sectionCountBadge}>
-          <Text style={styles.sectionCount}>{openTables.length}</Text>
-        </View>
+
+        {openTables.length === 0 ? (
+          <EmptyState
+            icon="restaurant-outline"
+            title="Nenhuma mesa aberta"
+            subtitle="Toque em 'Abrir Nova Mesa' para começar um atendimento."
+          />
+        ) : (
+          <View style={styles.tablesGrid}>
+            {openTables.map((table) => (
+              <TableCard
+                key={table.id}
+                table={table}
+                onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
-      {openTables.length === 0 ? (
-        <EmptyState
-          icon="restaurant-outline"
-          title="Nenhuma mesa aberta"
-          subtitle="Toque em 'Abrir Nova Mesa' para começar um atendimento."
-        />
-      ) : (
-        <View style={styles.tablesGrid}>
-          {openTables.map((table) => (
-            <TableCard
-              key={table.id}
-              table={table}
-              onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
-            />
-          ))}
+      <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
+        <View style={styles.endDayIconWrap}>
+          <Ionicons name="lock-closed-outline" size={16} color={colors.danger} />
         </View>
-      )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.endDayTitle}>Encerrar o dia</Text>
+          <Text style={styles.endDaySub}>Fecha o caixa e zera o painel para amanhã</Text>
+        </View>
+        <View style={styles.endDayChevronWrap}>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </View>
+      </AnimatedPressable>
 
       </ScrollView>
 
       <AnimatedPressable style={styles.fabWrap} onPress={() => navigation.navigate('OpenTable')}>
-        <LinearGradient
-          colors={[colors.emerald, colors.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fab}
-        >
-          <Ionicons name="add" size={22} color={colors.textInverse} />
-          <Text style={styles.fabLabel}>Abrir Nova Mesa</Text>
-        </LinearGradient>
+        <Ionicons name="add" size={22} color={colors.textInverse} />
+        <Text style={styles.fabLabel}>Abrir Nova Mesa</Text>
       </AnimatedPressable>
     </SafeAreaView>
   );
@@ -302,34 +288,93 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statsRow: {
+  receipt: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderBottomWidth: 0,
+    borderRadius: radius.xxl,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: spacing.lg,
+  },
+  receiptTopRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  receiptLabel: {
+    ...typography.caption,
+    fontFamily: monoFontFamily,
+    letterSpacing: 1.5,
+    color: colors.textMuted,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusText: {
+    ...typography.caption,
+    color: colors.emerald,
+  },
+  receiptValue: {
+    ...typography.display,
+    fontFamily: monoFontFamily,
+    fontSize: 36,
+    color: colors.emerald,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  receiptStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    borderTopColor: colors.borderLight,
+    paddingTop: spacing.sm,
+  },
+  receiptStat: {
+    flex: 1,
+  },
+  receiptStatValue: {
+    ...typography.h3,
+    fontFamily: monoFontFamily,
+    color: colors.textPrimary,
+  },
+  receiptStatLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  receiptStatDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: colors.borderLight,
+    marginHorizontal: spacing.sm,
   },
   endDayBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.warningMuted,
+    backgroundColor: colors.dangerMuted,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.coralGlow,
+    borderColor: 'rgba(255, 92, 114, 0.35)',
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.sm,
-    overflow: 'hidden',
   },
   endDayIconWrap: {
     width: 32,
     height: 32,
     borderRadius: radius.md,
-    backgroundColor: colors.coralMuted,
+    backgroundColor: colors.dangerMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   endDayTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: colors.danger,
   },
   endDaySub: {
     ...typography.caption,
@@ -351,35 +396,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.xs,
   },
-  sectionTitleRow: {
+  sectionTitle: {
+    ...typography.label,
+    fontSize: 12,
+    letterSpacing: 1.4,
+    color: colors.textMuted,
+  },
+  tablesCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  tablesCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  sectionCountBadge: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.full,
-    minWidth: 22,
-    height: 22,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionCount: {
+  tablesCardCount: {
     ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '700',
+    fontFamily: monoFontFamily,
+    color: colors.textMuted,
   },
   topItemsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   topItemsEmpty: {
     backgroundColor: colors.surface,
@@ -397,56 +441,60 @@ const styles = StyleSheet.create({
   topItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     gap: spacing.sm,
   },
-  rankBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankText: {
+  topItemRank: {
     ...typography.caption,
-    fontWeight: '700',
+    fontFamily: monoFontFamily,
+    color: colors.sand,
+    width: 14,
   },
-  topItemName: {
-    ...typography.body,
-    color: colors.textPrimary,
+  topItemBody: {
     flex: 1,
   },
+  topItemName: {
+    ...typography.bodySm,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 5,
+  },
+  topItemBarTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.primaryMuted,
+    overflow: 'hidden',
+  },
+  topItemBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: colors.sand,
+  },
   topItemQty: {
-    ...typography.h3,
-    color: colors.emerald,
+    ...typography.bodySm,
+    fontFamily: monoFontFamily,
+    color: colors.textSecondary,
   },
   tablesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.lg,
   },
   fabWrap: {
     position: 'absolute',
     bottom: spacing.lg,
     alignSelf: 'center',
-    borderRadius: radius.full,
-    shadowColor: colors.emerald,
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fab: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.sand,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radius.full,
-    gap: spacing.xs,
+    shadowColor: colors.sand,
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   fabLabel: {
     ...typography.h3,

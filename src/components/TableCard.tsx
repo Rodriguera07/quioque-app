@@ -1,50 +1,49 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getTableCurrentTotal } from '../context/usePosStore';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { Table } from '../types';
-import { formatCurrency, formatTime } from '../utils/format';
+import { formatCurrency, formatElapsed } from '../utils/format';
 import { AnimatedPressable } from './AnimatedPressable';
-import { PulseDot } from './PulseDot';
+import { TableTimeRing } from './TableTimeRing';
 
 interface Props {
   table: Table;
   onPress: () => void;
 }
 
+const RING_MAX_MINUTES = 90;
+
+function getUrgency(minutes: number) {
+  if (minutes >= 60) return colors.danger;
+  if (minutes >= 30) return colors.sand;
+  return colors.emerald;
+}
+
+function getElapsedMinutes(iso: string) {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+}
+
 export function TableCard({ table, onPress }: Props) {
   const total = getTableCurrentTotal(table);
   const itemCount = table.items.reduce((sum, i) => sum + i.quantity, 0);
+  const minutes = getElapsedMinutes(table.openedAt);
+  const accent = getUrgency(minutes);
+  const progress = Math.min(1, minutes / RING_MAX_MINUTES);
 
   return (
-    <AnimatedPressable style={styles.card} onPress={onPress}>
+    <AnimatedPressable style={[styles.card, { borderColor: accent }]} onPress={onPress}>
       <View style={styles.topRow}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{table.label}</Text>
+        <TableTimeRing progress={progress} color={accent}>
+          <Text style={styles.ringLabel}>{table.label}</Text>
+        </TableTimeRing>
+        <View style={[styles.elapsedPill, { backgroundColor: `${accent}26` }]}>
+          <Text style={[styles.elapsed, { color: accent }]}>{formatElapsed(table.openedAt)}</Text>
         </View>
-        <PulseDot />
       </View>
 
       <Text style={styles.total}>{formatCurrency(total)}</Text>
-
-      <View style={styles.metaRow}>
-        <Ionicons name="fast-food-outline" size={13} color={colors.textMuted} />
-        <Text style={styles.metaText}>{itemCount} itens</Text>
-      </View>
-
-      <View style={styles.footerRow}>
-        <Ionicons name="time-outline" size={12} color={colors.textMuted} />
-        <Text style={styles.footerText}>{formatTime(table.openedAt)}</Text>
-        {table.waiterName ? (
-          <>
-            <Text style={styles.dot}>·</Text>
-            <Text style={styles.footerText} numberOfLines={1}>
-              {table.waiterName}
-            </Text>
-          </>
-        ) : null}
-      </View>
+      <Text style={styles.metaText}>{itemCount} itens</Text>
     </AnimatedPressable>
   );
 }
@@ -52,10 +51,9 @@ export function TableCard({ table, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     width: '48%',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
     padding: spacing.md,
   },
   topRow: {
@@ -63,47 +61,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  badge: {
-    backgroundColor: colors.primaryMuted,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
+  ringLabel: {
+    ...typography.h3,
+    color: colors.textPrimary,
   },
-  badgeText: {
+  elapsedPill: {
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  elapsed: {
     ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
+    fontFamily: monoFontFamily,
   },
   total: {
-    ...typography.h2,
-    color: colors.textPrimary,
+    ...typography.h3,
+    fontFamily: monoFontFamily,
+    color: colors.emerald,
     marginTop: spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
   },
   metaText: {
-    ...typography.bodySm,
-    color: colors.textMuted,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    gap: 4,
-  },
-  footerText: {
     ...typography.caption,
     color: colors.textMuted,
-    flexShrink: 1,
-  },
-  dot: {
-    color: colors.textMuted,
+    marginTop: 2,
   },
 });

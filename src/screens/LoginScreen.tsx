@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -11,9 +10,20 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Button } from '../components/Button';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
+import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+
+const AWNING_COLORS = [
+  colors.danger,
+  colors.textPrimary,
+  colors.emerald,
+  colors.textPrimary,
+  colors.sand,
+  colors.textPrimary,
+];
 
 export function LoginScreen() {
   const login = useAuthStore((s) => s.login);
@@ -69,7 +79,7 @@ export function LoginScreen() {
       { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) },
     ],
   };
-  const formStyle = {
+  const cardStyle = {
     opacity: enter,
     transform: [
       { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) },
@@ -82,235 +92,183 @@ export function LoginScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <LinearGradient
-        colors={[colors.backgroundAlt, colors.background, colors.background]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-        style={styles.flex}
-      >
-        <View pointerEvents="none" style={styles.glowTop}>
-          <LinearGradient
-            colors={[colors.primaryGlow, 'transparent']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.glowCircle}
-          />
-        </View>
-        <View pointerEvents="none" style={styles.glowBottom}>
-          <LinearGradient
-            colors={[colors.coralGlow, 'transparent']}
-            start={{ x: 0.5, y: 1 }}
-            end={{ x: 0.5, y: 0 }}
-            style={styles.glowCircle}
-          />
+      <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
+        <View style={styles.awning}>
+          {AWNING_COLORS.map((c, i) => (
+            <View key={i} style={[styles.awningStripe, { backgroundColor: c }]} />
+          ))}
         </View>
 
         <View style={styles.container}>
           <Animated.View style={[styles.brandWrap, brandStyle]}>
-            <View style={styles.logoRing}>
-              <LinearGradient
-                colors={[colors.emerald, colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoCircle}
-              >
-                <Ionicons name="storefront" size={32} color={colors.textInverse} />
-              </LinearGradient>
+            <Text style={styles.brandTop}>QUIOSQUE</Text>
+            <View style={styles.brandBottomRow}>
+              <View style={styles.brandLine} />
+              <Text style={styles.brandBottom}>PDV</Text>
+              <View style={styles.brandLine} />
             </View>
-            <Text style={styles.brand}>Quiosque PDV</Text>
-            <View style={styles.brandBadge}>
-              <View style={styles.brandBadgeDot} />
-              <Text style={styles.brandSub}>Painel de gestão do gerente</Text>
-            </View>
+            <Text style={styles.brandSub}>Painel do gerente</Text>
           </Animated.View>
 
-          <Animated.View style={[styles.form, formStyle]}>
-            <LinearGradient
-              colors={[colors.borderLight, colors.border]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.formBorder}
-            >
-              <View style={styles.formInner}>
-                <Text style={styles.fieldLabel}>USUÁRIO</Text>
-                <View
-                  style={[
-                    styles.inputWrap,
-                    focusedField === 'user' && styles.inputWrapFocused,
-                  ]}
-                >
-                  <Ionicons
-                    name="person-outline"
-                    size={18}
-                    color={focusedField === 'user' ? colors.primary : colors.textMuted}
-                  />
-                  <TextInput
-                    value={username}
-                    onChangeText={(v) => {
-                      setUsername(v);
-                      if (error) setError('');
-                    }}
-                    onFocus={() => setFocusedField('user')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="admin"
-                    placeholderTextColor={colors.textMuted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                    returnKeyType="next"
-                  />
-                </View>
+          <Animated.View style={cardStyle}>
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>ACESSO AO CAIXA</Text>
 
-                <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>SENHA</Text>
-                <View
-                  style={[
-                    styles.inputWrap,
-                    focusedField === 'pass' && styles.inputWrapFocused,
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={18}
-                    color={focusedField === 'pass' ? colors.primary : colors.textMuted}
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={(v) => {
-                      setPassword(v);
-                      if (error) setError('');
-                    }}
-                    onFocus={() => setFocusedField('pass')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="••••••••"
-                    placeholderTextColor={colors.textMuted}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                    onSubmitEditing={handleLogin}
-                    returnKeyType="go"
-                  />
-                  <Pressable
-                    hitSlop={10}
-                    onPress={() => setShowPassword((v) => !v)}
-                    accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={18}
-                      color={colors.textMuted}
-                    />
-                  </Pressable>
-                </View>
-
-                {error ? (
-                  <View style={styles.errorBox}>
-                    <Ionicons name="alert-circle" size={15} color={colors.danger} />
-                    <Text style={styles.error}>{error}</Text>
-                  </View>
-                ) : null}
-
-                <View style={{ marginTop: spacing.xl }}>
-                  <Button
-                    label="Entrar"
-                    size="lg"
-                    onPress={handleLogin}
-                    loading={loading}
-                    icon={<Ionicons name="log-in-outline" size={20} color={colors.white} />}
-                  />
-                </View>
+              <Text style={styles.fieldLabel}>USUÁRIO</Text>
+              <View
+                style={[styles.inputWrap, focusedField === 'user' && styles.inputWrapFocused]}
+              >
+                <Ionicons
+                  name="person-outline"
+                  size={17}
+                  color={focusedField === 'user' ? colors.sand : colors.textMuted}
+                />
+                <TextInput
+                  value={username}
+                  onChangeText={(v) => {
+                    setUsername(v);
+                    if (error) setError('');
+                  }}
+                  onFocus={() => setFocusedField('user')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="admin"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.input}
+                  returnKeyType="next"
+                />
               </View>
-            </LinearGradient>
 
-            <View style={styles.hintPill}>
-              <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
-              <Text style={styles.hint}>Credenciais de teste: admin / admin123</Text>
+              <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>SENHA</Text>
+              <View
+                style={[styles.inputWrap, focusedField === 'pass' && styles.inputWrapFocused]}
+              >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={17}
+                  color={focusedField === 'pass' ? colors.sand : colors.textMuted}
+                />
+                <TextInput
+                  value={password}
+                  onChangeText={(v) => {
+                    setPassword(v);
+                    if (error) setError('');
+                  }}
+                  onFocus={() => setFocusedField('pass')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.input}
+                  onSubmitEditing={handleLogin}
+                  returnKeyType="go"
+                />
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={17}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle" size={14} color={colors.danger} />
+                  <Text style={styles.error}>{error}</Text>
+                </View>
+              ) : null}
+
+              <AnimatedPressable style={styles.enterBtn} onPress={handleLogin} disabled={loading}>
+                <Text style={styles.enterBtnText}>{loading ? 'Entrando…' : 'Entrar'}</Text>
+                {!loading ? (
+                  <Ionicons name="arrow-forward" size={19} color={colors.textInverse} />
+                ) : null}
+              </AnimatedPressable>
+            </View>
+            <ReceiptTornEdge />
+
+            <View style={styles.hintWrap}>
+              <Text style={styles.hintTitle}>AMBIENTE DE TESTE</Text>
+              <Text style={styles.hint}>admin · admin123</Text>
             </View>
           </Animated.View>
         </View>
-      </LinearGradient>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  awning: {
+    flexDirection: 'row',
+    height: 6,
+  },
+  awningStripe: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
-  glowTop: {
-    position: 'absolute',
-    top: -140,
-    right: -100,
-  },
-  glowBottom: {
-    position: 'absolute',
-    bottom: -160,
-    left: -120,
-  },
-  glowCircle: {
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-  },
   brandWrap: {
     alignItems: 'center',
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xxl,
   },
-  logoRing: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  logoCircle: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.emerald,
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
-  },
-  brand: {
+  brandTop: {
     ...typography.display,
-    fontSize: 28,
+    fontSize: 32,
     color: colors.textPrimary,
+    letterSpacing: -1,
   },
-  brandBadge: {
+  brandBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: spacing.xs,
+    gap: spacing.sm,
+    marginTop: 2,
   },
-  brandBadgeDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.emerald,
+  brandLine: {
+    width: 36,
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
+  brandBottom: {
+    ...typography.display,
+    fontSize: 32,
+    color: colors.sand,
+    letterSpacing: 2,
   },
   brandSub: {
     ...typography.body,
-    color: colors.textMuted,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
-  form: {},
-  formBorder: {
-    borderRadius: radius.xl + 1,
-    padding: 1,
-  },
-  formInner: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
+  card: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderBottomWidth: 0,
+    borderRadius: radius.xxl,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: spacing.lg,
+  },
+  cardLabel: {
+    ...typography.caption,
+    fontFamily: monoFontFamily,
+    letterSpacing: 2.5,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
   },
   fieldLabel: {
     ...typography.label,
@@ -320,21 +278,16 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceHighlight,
+    borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: 'transparent',
     paddingHorizontal: spacing.sm,
     height: 50,
     gap: spacing.xs,
   },
   inputWrapFocused: {
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 3,
+    borderColor: colors.sand,
   },
   input: {
     flex: 1,
@@ -350,29 +303,41 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   error: {
     ...typography.bodySm,
     color: colors.danger,
     flexShrink: 1,
   },
-  hintPill: {
+  enterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    alignSelf: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    marginTop: spacing.lg,
+    gap: spacing.xs,
+    backgroundColor: colors.sand,
+    borderRadius: radius.lg,
+    height: 54,
+    marginTop: spacing.xl,
+  },
+  enterBtnText: {
+    ...typography.h3,
+    color: colors.textInverse,
+  },
+  hintWrap: {
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  hintTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    color: colors.textMuted,
   },
   hint: {
-    ...typography.caption,
-    color: colors.textMuted,
+    ...typography.bodySm,
+    fontFamily: monoFontFamily,
+    color: colors.textSecondary,
+    marginTop: 3,
   },
 });

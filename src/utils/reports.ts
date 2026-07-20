@@ -4,6 +4,7 @@ export interface TopSellingItem {
   menuItemId: string;
   name: string;
   quantity: number;
+  revenue: number;
 }
 
 export interface PeriodReport {
@@ -47,11 +48,13 @@ export function getPeriodReport(sales: ClosedSale[], startDate: Date, endDate: D
       const existing = itemCounts.get(item.menuItemId);
       if (existing) {
         existing.quantity += item.quantity;
+        existing.revenue += item.unitPrice * item.quantity;
       } else {
         itemCounts.set(item.menuItemId, {
           menuItemId: item.menuItemId,
           name: item.name,
           quantity: item.quantity,
+          revenue: item.unitPrice * item.quantity,
         });
       }
     });

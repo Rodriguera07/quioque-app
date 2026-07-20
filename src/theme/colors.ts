@@ -41,10 +41,10 @@ export const colors = {
   textMuted: '#5B7581',
   textInverse: '#071219',
 
-  // Formas de pagamento
+  // Formas de pagamento (cores distintas para facilitar leitura em gráficos)
   pix: '#2DD4BF',
-  cash: '#E8C077',
-  debit: '#22B8CF',
+  cash: '#8FD14F',
+  debit: '#4FA8FF',
   credit: '#FF8A5C',
 
   white: '#FFFFFF',

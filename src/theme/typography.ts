@@ -1,4 +1,10 @@
-import { TextStyle } from 'react-native';
+import { Platform, TextStyle } from 'react-native';
+
+export const monoFontFamily = Platform.select({
+  ios: 'Courier New',
+  android: 'monospace',
+  default: 'monospace',
+});
 
 type TypeScale =
   | 'display'

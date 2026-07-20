@@ -64,7 +64,7 @@ O login é mockado (sem backend). Use:
 
 ```
 src/
-  components/   Componentes de UI reutilizáveis (Button, Card, StatCard, TableCard, ...)
+  components/   Componentes de UI reutilizáveis (Button, Card, TableCard, ...)
   context/      Stores Zustand: useAuthStore (login) e usePosStore (mesas, vendas, relatórios)
   data/         Cardápio mockado
   navigation/   Configuração do React Navigation

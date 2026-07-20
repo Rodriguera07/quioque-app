@@ -286,6 +286,64 @@ export const usePosStore = create<PosState>()(
     {
       name: 'quiosque-pos-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      migrate: (persisted: any, version) => {
+        if (!persisted || version >= 1) return persisted;
+
+        // v0 → v1: `paymentMethod` único (Table/ClosedSale) virou `payments:
+        // SplitPayment[]` (suporte a divisão de conta). Dados antigos salvos
+        // no AsyncStorage não têm `payments`, o que quebrava qualquer leitura
+        // (`sale.payments.forEach`) com "Cannot read property 'forEach' of
+        // undefined". Reconstituímos o pagamento único como uma entrada de
+        // split para manter o histórico legível.
+        const migrateSale = (sale: any) => {
+          if (Array.isArray(sale.payments)) return sale;
+          const { paymentMethod, ...rest } = sale;
+          return {
+            ...rest,
+            payments: paymentMethod
+              ? [
+                  {
+                    id: generateId('payment'),
+                    method: paymentMethod,
+                    amount: sale.total ?? 0,
+                    paidAt: sale.closedAt ?? new Date().toISOString(),
+                  },
+                ]
+              : [],
+          };
+        };
+
+        const migrateTable = (table: any) => {
+          if (Array.isArray(table.payments)) return table;
+          const { paymentMethod, ...rest } = table;
+          return {
+            ...rest,
+            splitEnabled: false,
+            splitCount: MIN_SPLIT_COUNT,
+            payments: paymentMethod
+              ? [
+                  {
+                    id: generateId('payment'),
+                    method: paymentMethod,
+                    amount: table.total ?? 0,
+                    paidAt: table.closedAt ?? new Date().toISOString(),
+                  },
+                ]
+              : [],
+          };
+        };
+
+        return {
+          ...persisted,
+          tables: (persisted.tables ?? []).map(migrateTable),
+          closedSalesToday: (persisted.closedSalesToday ?? []).map(migrateSale),
+          history: (persisted.history ?? []).map((day: any) => ({
+            ...day,
+            sales: (day.sales ?? []).map(migrateSale),
+          })),
+        };
+      },
     }
   )
 );
