@@ -88,7 +88,7 @@ const variantStyles: Record<Variant, { container: ViewStyle; text: { color: stri
     text: { color: colors.textPrimary },
   },
   ghost: {
-    container: { backgroundColor: colors.surfaceElevated },
+    container: { backgroundColor: colors.surfaceHighlight },
     text: { color: colors.textPrimary },
   },
   danger: {

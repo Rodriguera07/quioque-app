@@ -113,13 +113,22 @@ export function DashboardScreen({ navigation }: Props) {
 
       <View style={styles.receipt}>
         <View style={styles.receiptTopRow}>
-          <Text style={styles.receiptLabel}>FATURAMENTO DE HOJE</Text>
+          <Text style={styles.receiptLabel}>RESUMO DO CAIXA</Text>
           <View style={styles.statusPill}>
             <PulseDot size={6} />
             <Text style={styles.statusText}>caixa aberto</Text>
           </View>
         </View>
-        <Text style={styles.receiptValue}>{formatCurrency(revenue)}</Text>
+
+        <AnimatedPressable
+          style={styles.revenueLinkRow}
+          onPress={() => navigation.navigate('Reports')}
+        >
+          <Ionicons name="receipt-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.revenueLinkText}>Ver faturamento em Relatórios</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </AnimatedPressable>
+
         <View style={styles.receiptStatsRow}>
           <View style={styles.receiptStat}>
             <Text style={styles.receiptStatValue}>{openTables.length}</Text>
@@ -318,13 +327,22 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.emerald,
   },
-  receiptValue: {
-    ...typography.display,
-    fontFamily: monoFontFamily,
-    fontSize: 36,
-    color: colors.emerald,
+  revenueLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceHighlight,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  revenueLinkText: {
+    ...typography.bodySm,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    flex: 1,
   },
   receiptStatsRow: {
     flexDirection: 'row',
@@ -359,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerMuted,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 92, 114, 0.35)',
+    borderColor: 'rgba(225, 67, 92, 0.35)',
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.sm,

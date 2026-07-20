@@ -18,11 +18,11 @@ import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 
 const AWNING_COLORS = [
   colors.danger,
-  colors.textPrimary,
+  colors.surface,
   colors.emerald,
-  colors.textPrimary,
+  colors.surface,
   colors.sand,
-  colors.textPrimary,
+  colors.surface,
 ];
 
 export function LoginScreen() {
