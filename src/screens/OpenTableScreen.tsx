@@ -20,7 +20,7 @@ import { colors, radius, spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OpenTable'>;
 
-const QUICK_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Balcão', 'Deck'];
+const QUICK_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Balcão'];
 
 export function OpenTableScreen({ navigation }: Props) {
   const openTable = usePosStore((s) => s.openTable);
