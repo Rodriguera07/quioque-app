@@ -170,7 +170,10 @@ export function AddItemsScreen({ navigation, route }: Props) {
                   color={active ? colors.primary : colors.textSecondary}
                 />
               )}
-              <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
+              <Text
+                style={[styles.categoryChipText, active && styles.categoryChipTextActive]}
+                numberOfLines={1}
+              >
                 {label}
               </Text>
             </AnimatedPressable>
@@ -256,10 +259,13 @@ const styles = StyleSheet.create({
   categoryRow: {
     paddingHorizontal: spacing.lg,
     gap: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingBottom: spacing.md,
   },
   categoryChip: {
     flexDirection: 'row',
+    flexShrink: 0,
+    minHeight: 36,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
@@ -281,7 +287,8 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     ...typography.bodySm,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   categoryChipTextActive: {
     color: colors.primary,
@@ -289,6 +296,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xl,
     gap: spacing.sm,
   },

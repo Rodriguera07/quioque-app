@@ -77,13 +77,14 @@ export function TableDetailScreen({ navigation, route }: Props) {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Itens consumidos</Text>
           {isOpen && (
-            <TouchableOpacity
+            <AnimatedPressable
               style={styles.addBtn}
+              scaleTo={0.94}
               onPress={() => navigation.navigate('AddItems', { tableId })}
             >
-              <Ionicons name="add" size={16} color={colors.primary} />
+              <Ionicons name="add-circle" size={20} color={colors.textInverse} />
               <Text style={styles.addBtnText}>Adicionar Itens</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           )}
         </View>
 
@@ -277,15 +278,20 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primaryMuted,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.full,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   addBtnText: {
-    ...typography.caption,
-    color: colors.primary,
+    ...typography.bodySm,
+    color: colors.textInverse,
     fontWeight: '700',
   },
   itemsCard: {
