@@ -76,7 +76,10 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
                 active && styles.itemActive,
                 pressed && styles.itemPressed,
               ]}
-              onPress={() => navigation.navigate('AppStack', { screen: item.key })}
+              onPress={() => {
+                navigation.navigate('AppStack', { screen: item.key });
+                navigation.closeDrawer();
+              }}
             >
               <Ionicons
                 name={item.icon}

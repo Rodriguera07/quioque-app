@@ -4,6 +4,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OrderItemRow } from '../components/OrderItemRow';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
@@ -13,6 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ClosedTableDetail'>;
 
 export function ClosedTableDetailScreen({ navigation, route }: Props) {
   const { sale } = route.params;
+  const { contentStyle } = useResponsiveContent();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
@@ -29,7 +31,10 @@ export function ClosedTableDetailScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Ionicons name="log-in-outline" size={16} color={colors.textMuted} />

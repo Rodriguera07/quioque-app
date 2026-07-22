@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { getTableCurrentTotal } from '../context/usePosStore';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { Table } from '../types';
@@ -10,6 +10,7 @@ import { TableTimeRing } from './TableTimeRing';
 interface Props {
   table: Table;
   onPress: () => void;
+  style?: ViewStyle;
 }
 
 const RING_MAX_MINUTES = 90;
@@ -24,7 +25,7 @@ function getElapsedMinutes(iso: string) {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 }
 
-export function TableCard({ table, onPress }: Props) {
+export function TableCard({ table, onPress, style }: Props) {
   const total = getTableCurrentTotal(table);
   const itemCount = table.items.reduce((sum, i) => sum + i.quantity, 0);
   const minutes = getElapsedMinutes(table.openedAt);
@@ -32,7 +33,7 @@ export function TableCard({ table, onPress }: Props) {
   const progress = Math.min(1, minutes / RING_MAX_MINUTES);
 
   return (
-    <AnimatedPressable style={[styles.card, { borderColor: accent }]} onPress={onPress}>
+    <AnimatedPressable style={[styles.card, { borderColor: accent }, style]} onPress={onPress}>
       <View style={styles.topRow}>
         <TableTimeRing progress={progress} color={accent}>
           <Text style={styles.ringLabel}>{table.label}</Text>

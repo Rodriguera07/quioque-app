@@ -3,7 +3,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { PaymentMethodButton } from '../components/PaymentMethodButton';
+import { useResponsiveContent, widthForColumns } from '../hooks/useResponsiveContent';
 import {
   getNextPaymentAmount,
   getPaidPeopleCount,
@@ -42,9 +44,13 @@ export function CloseTableScreen({ navigation, route }: Props) {
   const closeTable = usePosStore((s) => s.closeTable);
   const [selected, setSelected] = useState<PaymentMethod | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [showNoConsumptionConfirm, setShowNoConsumptionConfirm] = useState(false);
+  const { contentStyle, paymentColumns } = useResponsiveContent();
+  const paymentButtonWidth = widthForColumns(paymentColumns);
 
   if (!table) return null;
 
+  const hasConsumption = table.items.length > 0;
   const subtotal = table.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   const serviceFeeAmount = table.serviceFeeEnabled ? subtotal * SERVICE_FEE_RATE : 0;
   const total = subtotal + serviceFeeAmount;
@@ -89,6 +95,18 @@ export function CloseTableScreen({ navigation, route }: Props) {
     setConfirming(false);
   };
 
+  const handleCloseWithoutConsumption = async () => {
+    setConfirming(true);
+    const result = await closeTable(tableId);
+    setConfirming(false);
+    setShowNoConsumptionConfirm(false);
+    if (result === 'ok') {
+      navigation.popToTop();
+      return;
+    }
+    showAlert('Não foi possível fechar a mesa', 'Tente novamente em instantes.');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
@@ -98,7 +116,10 @@ export function CloseTableScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -160,37 +181,72 @@ export function CloseTableScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>
-          {isSplit ? `Forma de pagamento · Pessoa ${currentPersonNumber}` : 'Forma de pagamento'}
-        </Text>
-        <View style={styles.paymentGrid}>
-          {PAYMENT_OPTIONS.map((opt) => (
-            <PaymentMethodButton
-              key={opt.method}
-              label={opt.label}
-              icon={opt.icon}
-              color={opt.color}
-              selected={selected === opt.method}
-              onPress={() => setSelected(opt.method)}
-            />
-          ))}
-        </View>
+        {hasConsumption ? (
+          <>
+            <Text style={styles.sectionTitle}>
+              {isSplit ? `Forma de pagamento · Pessoa ${currentPersonNumber}` : 'Forma de pagamento'}
+            </Text>
+            <View style={styles.paymentGrid}>
+              {PAYMENT_OPTIONS.map((opt) => (
+                <PaymentMethodButton
+                  key={opt.method}
+                  label={opt.label}
+                  icon={opt.icon}
+                  color={opt.color}
+                  selected={selected === opt.method}
+                  onPress={() => setSelected(opt.method)}
+                  style={{ width: paymentButtonWidth }}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <View style={styles.noConsumptionBox}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.noConsumptionText}>
+              Esta mesa não teve nenhum item lançado. Você pode fechá-la sem cobrança.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
-          disabled={!selected || confirming}
-          onPress={handleConfirm}
-        >
-          <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
-          <Text style={styles.confirmText}>
-            {isSplit
-              ? `Confirmar Pessoa ${currentPersonNumber} · ${formatCurrency(nextAmount)}`
-              : `Confirmar Pagamento · ${formatCurrency(nextAmount)}`}
-          </Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, contentStyle]}>
+        {hasConsumption ? (
+          <TouchableOpacity
+            style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
+            disabled={!selected || confirming}
+            onPress={handleConfirm}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
+            <Text style={styles.confirmText}>
+              {isSplit
+                ? `Confirmar Pessoa ${currentPersonNumber} · ${formatCurrency(nextAmount)}`
+                : `Confirmar Pagamento · ${formatCurrency(nextAmount)}`}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.confirmBtn}
+            disabled={confirming}
+            onPress={() => setShowNoConsumptionConfirm(true)}
+          >
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
+            <Text style={styles.confirmText}>Fechar Mesa sem Cobrança</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      <ConfirmModal
+        visible={showNoConsumptionConfirm}
+        icon="checkmark-done-circle-outline"
+        iconColor={colors.emerald}
+        title="Fechar sem cobrança?"
+        message={`A mesa ${table.label} não teve nenhum item lançado e será fechada sem nenhum pagamento.`}
+        confirmLabel="Fechar mesa"
+        loading={confirming}
+        onConfirm={handleCloseWithoutConsumption}
+        onCancel={() => setShowNoConsumptionConfirm(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -323,6 +379,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: spacing.sm,
+  },
+  noConsumptionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceHighlight,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.md,
+  },
+  noConsumptionText: {
+    ...typography.bodySm,
+    color: colors.textSecondary,
+    flex: 1,
   },
   footer: {
     padding: spacing.lg,

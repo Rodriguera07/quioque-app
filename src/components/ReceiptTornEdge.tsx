@@ -1,17 +1,29 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { colors } from '../theme';
 
-const NOTCH_COUNT = 22;
+const NOTCH_SIZE = 12;
+const NOTCH_STEP = NOTCH_SIZE / 2; // cada notch avança metade da largura por causa da sobreposição
 
 interface Props {
   color?: string;
 }
 
 export function ReceiptTornEdge({ color = colors.background }: Props) {
+  const [width, setWidth] = useState(0);
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const measured = e.nativeEvent.layout.width;
+    if (Math.abs(measured - width) > 1) setWidth(measured);
+  };
+
+  // Notches suficientes para cobrir a largura real do card, então funciona
+  // igual em telefones estreitos e tablets largos (recalcula em rotação).
+  const notchCount = width > 0 ? Math.ceil(width / NOTCH_STEP) + 1 : 30;
+
   return (
-    <View style={styles.row} pointerEvents="none">
-      {Array.from({ length: NOTCH_COUNT }).map((_, i) => (
+    <View style={styles.row} onLayout={handleLayout} pointerEvents="none">
+      {Array.from({ length: notchCount }).map((_, i) => (
         <View key={i} style={[styles.notch, { backgroundColor: color }]} />
       ))}
     </View>
@@ -21,14 +33,14 @@ export function ReceiptTornEdge({ color = colors.background }: Props) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    height: 12,
-    marginLeft: -6,
+    height: NOTCH_SIZE,
+    marginLeft: -NOTCH_STEP,
     overflow: 'hidden',
   },
   notch: {
-    width: 12,
-    height: 12,
-    marginLeft: -6,
+    width: NOTCH_SIZE,
+    height: NOTCH_SIZE,
+    marginLeft: -NOTCH_STEP,
     transform: [{ rotate: '45deg' }],
   },
 });

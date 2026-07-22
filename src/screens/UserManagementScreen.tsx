@@ -17,6 +17,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { useAuthStore } from '../context/useAuthStore';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { createOrgUser } from '../services/adminApi';
 import { setOrgUserActive, subscribeOrgUsers } from '../services/firestoreOrg';
@@ -31,6 +32,7 @@ const ROLE_LABEL: Record<Role, string> = { admin: 'Administrador', staff: 'Equip
 export function UserManagementScreen({ navigation }: Props) {
   const orgId = useAuthStore((s) => s.user?.orgId ?? null);
   const currentUid = useAuthStore((s) => s.user?.uid);
+  const { contentStyle } = useResponsiveContent();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -114,7 +116,10 @@ export function UserManagementScreen({ navigation }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, contentStyle]}
+          showsVerticalScrollIndicator={false}
+        >
           {showForm ? (
             <View style={styles.formCard}>
               <Text style={styles.formTitle}>Novo usuário</Text>

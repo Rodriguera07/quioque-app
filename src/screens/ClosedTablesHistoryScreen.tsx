@@ -7,6 +7,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
 import { useAuthStore } from '../context/useAuthStore';
 import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { ClosedSale } from '../types';
@@ -47,6 +48,7 @@ function groupByDay(sales: ClosedSale[]): { label: string; sales: ClosedSale[] }
 
 export function ClosedTablesHistoryScreen({ navigation }: Props) {
   const orgId = useAuthStore((s) => s.user?.orgId ?? null);
+  const { contentStyle } = useResponsiveContent();
   const [preset, setPreset] = useState<PeriodPreset>('7d');
 
   const days = PRESETS.find((p) => p.key === preset)?.days ?? 7;
@@ -79,7 +81,10 @@ export function ClosedTablesHistoryScreen({ navigation }: Props) {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         {!loading && sales.length === 0 ? (
           <EmptyState
             icon="receipt-outline"

@@ -9,6 +9,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
 import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
@@ -49,6 +50,7 @@ function formatShortRange(start: Date, end: Date) {
 
 export function ReportsScreen({ navigation }: Props) {
   const orgId = useAuthStore((s) => s.user?.orgId ?? null);
+  const { contentStyle } = useResponsiveContent();
 
   const [preset, setPreset] = useState<PeriodPreset>('7d');
   const [startDate, setStartDate] = useState(subDays(new Date(), 6));
@@ -130,7 +132,10 @@ export function ReportsScreen({ navigation }: Props) {
         />
       )}
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.receipt}>
           <Text style={styles.receiptLabel}>FATURAMENTO DO PERÍODO</Text>
           <Text style={styles.receiptValue}>{formatCurrency(report.totalRevenue)}</Text>

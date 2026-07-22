@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 
 const AWNING_COLORS = [
@@ -33,6 +34,7 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'user' | 'pass' | null>(null);
+  const { contentStyle } = useResponsiveContent(440);
 
   const enter = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
@@ -97,7 +99,7 @@ export function LoginScreen() {
           ))}
         </View>
 
-        <View style={styles.container}>
+        <View style={[styles.container, contentStyle]}>
           <Animated.View style={[styles.brandWrap, brandStyle]}>
             <Text style={styles.brandTop}>QUIOSQUE</Text>
             <View style={styles.brandBottomRow}>

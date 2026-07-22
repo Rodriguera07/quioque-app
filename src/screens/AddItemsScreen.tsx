@@ -16,6 +16,7 @@ import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { CATEGORY_ICONS, CATEGORY_LABELS, MENU_ITEMS } from '../data/menu';
 import { usePosStore } from '../context/usePosStore';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { MenuCategory, MenuItem } from '../types';
@@ -47,6 +48,7 @@ export function AddItemsScreen({ navigation, route }: Props) {
   const { tableId } = route.params;
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [search, setSearch] = useState('');
+  const { contentStyle } = useResponsiveContent();
 
   const table = usePosStore((s) => s.tables.find((t) => t.id === tableId));
   const addItem = usePosStore((s) => s.addItem);
@@ -132,7 +134,7 @@ export function AddItemsScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchWrap}>
+      <View style={[styles.searchWrap, contentStyle]}>
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           value={search}
@@ -149,37 +151,39 @@ export function AddItemsScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        {CATEGORIES.map((cat) => {
-          const label = cat === 'all' ? 'Todas' : CATEGORY_LABELS[cat];
-          const active = activeCategory === cat;
-          return (
-            <AnimatedPressable
-              key={cat}
-              style={[styles.categoryChip, active && styles.categoryChipActive]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              {cat !== 'all' && (
-                <Ionicons
-                  name={CATEGORY_ICONS[cat]}
-                  size={14}
-                  color={active ? colors.primary : colors.textSecondary}
-                />
-              )}
-              <Text
-                style={[styles.categoryChipText, active && styles.categoryChipTextActive]}
-                numberOfLines={1}
+      <View style={[styles.categorySection, contentStyle]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryRow}
+        >
+          {CATEGORIES.map((cat) => {
+            const label = cat === 'all' ? 'Todas' : CATEGORY_LABELS[cat];
+            const active = activeCategory === cat;
+            return (
+              <AnimatedPressable
+                key={cat}
+                style={[styles.categoryChip, active && styles.categoryChipActive]}
+                onPress={() => setActiveCategory(cat)}
               >
-                {label}
-              </Text>
-            </AnimatedPressable>
-          );
-        })}
-      </ScrollView>
+                {cat !== 'all' && (
+                  <Ionicons
+                    name={CATEGORY_ICONS[cat]}
+                    size={14}
+                    color={active ? colors.primary : colors.textSecondary}
+                  />
+                )}
+                <Text
+                  style={[styles.categoryChipText, active && styles.categoryChipTextActive]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
+              </AnimatedPressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {filteredItems.length === 0 ? (
         <EmptyState
@@ -192,13 +196,13 @@ export function AddItemsScreen({ navigation, route }: Props) {
           data={filteredItems}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, contentStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
       )}
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, contentStyle]}>
         <Button
           label={`Concluir${totalItemsInCart > 0 ? ` (${totalItemsInCart} itens)` : ''}`}
           size="lg"
@@ -256,10 +260,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     height: '100%',
   },
+  categorySection: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: spacing.md,
+  },
   categoryRow: {
     paddingHorizontal: spacing.lg,
     gap: spacing.xs,
-    paddingVertical: spacing.xs,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.md,
   },
   categoryChip: {
@@ -296,7 +305,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
     gap: spacing.sm,
   },

@@ -16,6 +16,7 @@ import {
   SERVICE_FEE_RATE,
   usePosStore,
 } from '../context/usePosStore';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { formatCurrency, formatTime } from '../utils/format';
@@ -31,6 +32,7 @@ export function TableDetailScreen({ navigation, route }: Props) {
   const toggleServiceFee = usePosStore((s) => s.toggleServiceFee);
   const toggleSplit = usePosStore((s) => s.toggleSplit);
   const setSplitCount = usePosStore((s) => s.setSplitCount);
+  const { contentStyle } = useResponsiveContent();
 
   if (!table) {
     return (
@@ -73,7 +75,10 @@ export function TableDetailScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Itens consumidos</Text>
           {isOpen && (
@@ -209,12 +214,11 @@ export function TableDetailScreen({ navigation, route }: Props) {
       </ScrollView>
 
       {isOpen && (
-        <View style={styles.footer}>
+        <View style={[styles.footer, contentStyle]}>
           <Button
             label={splitLocked ? 'Continuar Pagamento' : 'Fechar Mesa'}
             size="lg"
             variant="emerald"
-            disabled={table.items.length === 0}
             onPress={() => navigation.navigate('CloseTable', { tableId })}
           />
         </View>

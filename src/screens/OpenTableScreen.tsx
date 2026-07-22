@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { usePosStore } from '../context/usePosStore';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 
@@ -27,6 +28,7 @@ export function OpenTableScreen({ navigation }: Props) {
   const [label, setLabel] = useState('');
   const [waiterName, setWaiterName] = useState('');
   const [error, setError] = useState('');
+  const { contentStyle } = useResponsiveContent();
 
   const handleConfirm = () => {
     if (!label.trim()) {
@@ -50,7 +52,10 @@ export function OpenTableScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={[styles.content, contentStyle]}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.fieldLabel}>MESA / NÚMERO</Text>
           <TextInput
             value={label}
@@ -89,7 +94,7 @@ export function OpenTableScreen({ navigation }: Props) {
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={[styles.footer, contentStyle]}>
           <Button label="Abrir Mesa" size="lg" variant="emerald" onPress={handleConfirm} />
         </View>
       </KeyboardAvoidingView>

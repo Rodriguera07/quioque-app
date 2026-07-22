@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
 import { AnimatedPressable } from './AnimatedPressable';
 
@@ -10,13 +10,22 @@ interface Props {
   color: string;
   selected?: boolean;
   onPress: () => void;
+  style?: ViewStyle;
 }
 
-export function PaymentMethodButton({ label, icon, color, selected = false, onPress }: Props) {
+export function PaymentMethodButton({
+  label,
+  icon,
+  color,
+  selected = false,
+  onPress,
+  style,
+}: Props) {
   return (
     <AnimatedPressable
       style={[
         styles.card,
+        style,
         selected && {
           borderColor: color,
           backgroundColor: `${color}1F`,

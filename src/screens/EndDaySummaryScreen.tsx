@@ -5,6 +5,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
+import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
@@ -15,10 +16,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'EndDaySummary'>;
 
 export function EndDaySummaryScreen({ navigation, route }: Props) {
   const { summary } = route.params;
+  const { contentStyle } = useResponsiveContent();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, contentStyle]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.iconWrap}>
           <Ionicons name="checkmark-circle" size={40} color={colors.emerald} />
         </View>
@@ -70,7 +75,7 @@ export function EndDaySummaryScreen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, contentStyle]}>
         <Button
           label="Concluir e voltar ao painel"
           size="lg"

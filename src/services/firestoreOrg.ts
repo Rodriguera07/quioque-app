@@ -74,12 +74,13 @@ export function subscribeClosedSalesRange(
   });
 }
 
-export type CloseTableResult = 'ok' | 'not-open' | 'not-found' | 'unpaid' | 'empty';
+export type CloseTableResult = 'ok' | 'not-open' | 'not-found' | 'unpaid';
 
 // Fecha a mesa dentro de uma transação: revalida no servidor que ela ainda
-// está aberta, tem itens e está totalmente paga antes de gravar — evita que
-// dois dispositivos fechem a mesma mesa duas vezes caso ambos estivessem
-// offline e reconectem quase ao mesmo tempo.
+// está aberta e está totalmente paga antes de gravar (mesas sem nenhum item
+// já estão "pagas" por não terem valor a cobrar) — evita que dois
+// dispositivos fechem a mesma mesa duas vezes caso ambos estivessem offline
+// e reconectem quase ao mesmo tempo.
 export async function closeTableTransaction(
   orgId: string,
   tableId: string,
@@ -94,7 +95,6 @@ export async function closeTableTransaction(
     if (!snap.exists()) return 'not-found';
     const table = snap.data() as Table;
     if (table.status !== 'open') return 'not-open';
-    if (table.items.length === 0) return 'empty';
     if (!isPaidInFull(table)) return 'unpaid';
 
     const { subtotal, serviceFeeAmount, total } = computeTotals(
