@@ -306,7 +306,6 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: colors.primary,
-    fontWeight: '700',
   },
   list: {
     paddingHorizontal: spacing.lg,

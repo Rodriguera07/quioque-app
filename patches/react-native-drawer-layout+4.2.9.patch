@@ -1,0 +1,17 @@
+diff --git a/node_modules/react-native-drawer-layout/lib/module/views/Drawer.native.js b/node_modules/react-native-drawer-layout/lib/module/views/Drawer.native.js
+index 6a78070..811b7fe 100644
+--- a/node_modules/react-native-drawer-layout/lib/module/views/Drawer.native.js
++++ b/node_modules/react-native-drawer-layout/lib/module/views/Drawer.native.js
+@@ -136,9 +136,9 @@ export function Drawer({
+     touchX.value = 0;
+     translationX.value = withSpring(translateX, {
+       velocity,
+-      stiffness: 1000,
+-      damping: 500,
+-      mass: 3,
++      stiffness: 280,
++      damping: 32,
++      mass: 0.9,
+       overshootClamping: true,
+       reduceMotion: ReduceMotion.Never
+     }, finished => runOnJS(onAnimationEnd)(open, finished));
