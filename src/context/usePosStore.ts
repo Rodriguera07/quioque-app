@@ -325,7 +325,16 @@ export const usePosStore = create<PosState>((set, get) => ({
       closedAt,
     });
 
-    set({ currentDay: formatDateKey() });
+    // Reinicia a janela de "vendas de hoje" a partir de agora — sem isso, o
+    // Dashboard (faturamento, ticket médio, mais vendidos) continuaria
+    // somando as vendas do turno recém-encerrado com as do próximo turno
+    // sempre que ambos caírem no mesmo dia civil.
+    closedSalesUnsubscribe?.();
+    closedSalesUnsubscribe = subscribeClosedSalesSince(orgId, closedAt, (closedSalesToday) =>
+      set({ closedSalesToday })
+    );
+
+    set({ currentDay: formatDateKey(), closedSalesToday: [] });
 
     return summary;
   },
