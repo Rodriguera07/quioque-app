@@ -43,6 +43,7 @@ export function DashboardScreen({ navigation }: Props) {
   const [notifSeenAt, setNotifSeenAt] = useState(() => new Date().toISOString());
 
   const userName = useAuthStore((s) => s.user?.displayName ?? null);
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const logout = useAuthStore((s) => s.logout);
 
   const tables = usePosStore((s) => s.tables);
@@ -73,6 +74,7 @@ export function DashboardScreen({ navigation }: Props) {
   const initial = (userName ?? 'G').charAt(0).toUpperCase();
 
   const handleEndDay = () => {
+    if (!isAdmin) return;
     if (openTables.length > 0) {
       setEndDayDialog('blocked-open');
       return;
@@ -249,18 +251,20 @@ export function DashboardScreen({ navigation }: Props) {
         )}
       </View>
 
-      <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
-        <View style={styles.endDayIconWrap}>
-          <Ionicons name="lock-closed-outline" size={16} color={colors.danger} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.endDayTitle}>Encerrar o dia</Text>
-          <Text style={styles.endDaySub}>Fecha o caixa e zera o painel para amanhã</Text>
-        </View>
-        <View style={styles.endDayChevronWrap}>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </View>
-      </AnimatedPressable>
+      {isAdmin && (
+        <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
+          <View style={styles.endDayIconWrap}>
+            <Ionicons name="lock-closed-outline" size={16} color={colors.danger} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.endDayTitle}>Encerrar o dia</Text>
+            <Text style={styles.endDaySub}>Fecha o caixa e zera o painel para amanhã</Text>
+          </View>
+          <View style={styles.endDayChevronWrap}>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </View>
+        </AnimatedPressable>
+      )}
 
       </ScrollView>
 
@@ -451,7 +455,7 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    paddingHorizontal: 3,
+    paddingHorizontal: spacing.xxs,
     backgroundColor: colors.danger,
     borderWidth: 1.5,
     borderColor: colors.background,

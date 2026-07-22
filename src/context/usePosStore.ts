@@ -21,7 +21,18 @@ import {
 } from '../utils/billing';
 import { formatDateKey } from '../utils/format';
 import { generateId } from '../utils/id';
+import { showAlert } from '../utils/alert';
 import type { Unsubscribe } from 'firebase/firestore';
+
+// Escritas "dispare e esqueça" (não aguardadas pela UI) falhavam em
+// silêncio — o usuário via a mudança sumir sem explicação quando o listener
+// do Firestore revertia o valor otimista. Isso garante um aviso mínimo.
+function warnAndAlert(context: string, title: string) {
+  return (err: unknown) => {
+    console.warn(`[usePosStore] ${context}`, err);
+    showAlert(title, 'Verifique sua conexão e tente novamente.');
+  };
+}
 
 interface CurrentUser {
   uid: string;
@@ -107,7 +118,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       openedByUserName: currentUser.displayName,
     };
 
-    setTable(orgId, newTable).catch((err) => console.warn('Falha ao abrir mesa', err));
+    setTable(orgId, newTable).catch(warnAndAlert('abrir mesa', 'Não foi possível abrir a mesa'));
     logAuditEvent({
       orgId,
       userId: currentUser.uid,
@@ -146,8 +157,8 @@ export const usePosStore = create<PosState>((set, get) => ({
       ];
     }
 
-    updateTable(orgId, tableId, { items }).catch((err) =>
-      console.warn('Falha ao adicionar item', err)
+    updateTable(orgId, tableId, { items }).catch(
+      warnAndAlert('adicionar item', 'Não foi possível adicionar o item')
     );
     logAuditEvent({
       orgId,
@@ -168,8 +179,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     const items = table.items.map((i) =>
       i.id === orderItemId ? { ...i, quantity: i.quantity + 1 } : i
     );
-    updateTable(orgId, tableId, { items }).catch((err) =>
-      console.warn('Falha ao atualizar item', err)
+    updateTable(orgId, tableId, { items }).catch(
+      warnAndAlert('incrementar item', 'Não foi possível atualizar o item')
     );
   },
 
@@ -181,8 +192,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     const items = table.items
       .map((i) => (i.id === orderItemId ? { ...i, quantity: i.quantity - 1 } : i))
       .filter((i) => i.quantity > 0);
-    updateTable(orgId, tableId, { items }).catch((err) =>
-      console.warn('Falha ao atualizar item', err)
+    updateTable(orgId, tableId, { items }).catch(
+      warnAndAlert('decrementar item', 'Não foi possível atualizar o item')
     );
   },
 
@@ -192,8 +203,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     const table = tables.find((t) => t.id === tableId);
     if (!table) return;
     const items = table.items.filter((i) => i.id !== orderItemId);
-    updateTable(orgId, tableId, { items }).catch((err) =>
-      console.warn('Falha ao remover item', err)
+    updateTable(orgId, tableId, { items }).catch(
+      warnAndAlert('remover item', 'Não foi possível remover o item')
     );
   },
 
@@ -202,8 +213,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     if (!orgId) return;
     const table = tables.find((t) => t.id === tableId);
     if (!table) return;
-    updateTable(orgId, tableId, { serviceFeeEnabled: !table.serviceFeeEnabled }).catch((err) =>
-      console.warn('Falha ao atualizar taxa de serviço', err)
+    updateTable(orgId, tableId, { serviceFeeEnabled: !table.serviceFeeEnabled }).catch(
+      warnAndAlert('atualizar taxa de serviço', 'Não foi possível atualizar a taxa de serviço')
     );
   },
 
@@ -212,8 +223,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     if (!orgId) return;
     const table = tables.find((t) => t.id === tableId);
     if (!table || table.payments.length > 0) return;
-    updateTable(orgId, tableId, { splitEnabled: !table.splitEnabled }).catch((err) =>
-      console.warn('Falha ao atualizar divisão de conta', err)
+    updateTable(orgId, tableId, { splitEnabled: !table.splitEnabled }).catch(
+      warnAndAlert('atualizar divisão de conta', 'Não foi possível atualizar a divisão da conta')
     );
   },
 
@@ -223,8 +234,8 @@ export const usePosStore = create<PosState>((set, get) => ({
     const table = tables.find((t) => t.id === tableId);
     if (!table || table.payments.length > 0) return;
     const clamped = Math.min(MAX_SPLIT_COUNT, Math.max(MIN_SPLIT_COUNT, Math.round(count)));
-    updateTable(orgId, tableId, { splitCount: clamped }).catch((err) =>
-      console.warn('Falha ao atualizar divisão de conta', err)
+    updateTable(orgId, tableId, { splitCount: clamped }).catch(
+      warnAndAlert('atualizar divisão de conta', 'Não foi possível atualizar a divisão da conta')
     );
   },
 

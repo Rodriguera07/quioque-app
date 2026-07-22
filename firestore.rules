@@ -59,22 +59,40 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Mesas — quadro ao vivo do dia.
+    // Mesas — quadro ao vivo do dia. Qualquer membro opera mesas no dia a
+    // dia (abrir, lançar item, registrar pagamento, fechar), mas os campos
+    // de autoria não podem ser forjados em nome de outro usuário, e apagar
+    // uma mesa (só acontece no encerramento do dia) é exclusivo de admin.
     match /organizations/{orgId}/tables/{tableId} {
-      allow read, write: if isOrgMember(orgId);
+      allow read: if isOrgMember(orgId);
+
+      allow create: if isOrgMember(orgId)
+        && request.resource.data.status == 'open'
+        && request.resource.data.openedByUserId == request.auth.uid;
+
+      allow update: if isOrgMember(orgId)
+        && (request.resource.data.status != 'closed'
+            || request.resource.data.closedByUserId == request.auth.uid);
+
+      allow delete: if isOrgAdmin(orgId) && resource.data.status == 'closed';
     }
 
-    // Vendas fechadas — histórico permanente, não editável nem apagável pelo app.
+    // Vendas fechadas — histórico permanente, não editável nem apagável pelo
+    // app. Quem assina o fechamento (closedByUserId) precisa ser o próprio
+    // usuário autenticado, para o histórico de vendas não poder ser forjado
+    // em nome de outra pessoa.
     match /organizations/{orgId}/closedSales/{saleId} {
       allow read: if isOrgMember(orgId);
-      allow create: if isOrgMember(orgId);
+      allow create: if isOrgMember(orgId)
+        && request.resource.data.closedByUserId == request.auth.uid;
       allow update, delete: if false;
     }
 
-    // Rollups diários usados pelos Relatórios.
+    // Rollups diários usados pelos Relatórios — só são gravados pelo
+    // encerramento do dia, uma ação exclusiva de admin.
     match /organizations/{orgId}/daySummaries/{date} {
       allow read: if isOrgMember(orgId);
-      allow create, update: if isOrgMember(orgId);
+      allow create, update: if isOrgAdmin(orgId);
       allow delete: if false;
     }
 

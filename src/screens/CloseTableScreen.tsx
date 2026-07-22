@@ -166,11 +166,11 @@ export function CloseTableScreen({ navigation, route }: Props) {
                     key={index}
                     style={[
                       styles.personChip,
-                      payment && { backgroundColor: `${meta!.color}22`, borderColor: meta!.color },
+                      meta && { backgroundColor: `${meta.color}22`, borderColor: meta.color },
                     ]}
                   >
-                    {payment ? (
-                      <Ionicons name={meta!.icon} size={14} color={meta!.color} />
+                    {meta ? (
+                      <Ionicons name={meta.icon} size={14} color={meta.color} />
                     ) : (
                       <Text style={styles.personChipText}>{index + 1}</Text>
                     )}

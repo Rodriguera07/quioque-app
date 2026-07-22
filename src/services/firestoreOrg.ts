@@ -24,6 +24,13 @@ const auditLogCol = (orgId: string) => collection(db, 'organizations', orgId, 'a
 const daySummaryDoc = (orgId: string, date: string) =>
   doc(db, 'organizations', orgId, 'daySummaries', date);
 
+// Sem isso, um listener que cai (permissão revogada, doc apagado, conexão
+// instável) simplesmente para de atualizar a tela sem nenhum aviso — o app
+// fica com dado desatualizado e ninguém percebe o motivo.
+function logSnapshotError(label: string) {
+  return (err: unknown) => console.warn(`[firestore] listener "${label}" falhou`, err);
+}
+
 export function newTableId(orgId: string): string {
   return doc(tablesCol(orgId)).id;
 }
@@ -37,9 +44,11 @@ export function updateTable(orgId: string, tableId: string, patch: Partial<Table
 }
 
 export function subscribeTables(orgId: string, cb: (tables: Table[]) => void): Unsubscribe {
-  return onSnapshot(tablesCol(orgId), (snap) => {
-    cb(snap.docs.map((d) => d.data() as Table));
-  });
+  return onSnapshot(
+    tablesCol(orgId),
+    (snap) => cb(snap.docs.map((d) => d.data() as Table)),
+    logSnapshotError('tables')
+  );
 }
 
 export function subscribeClosedSalesSince(
@@ -52,9 +61,11 @@ export function subscribeClosedSalesSince(
     where('closedAt', '>=', sinceIso),
     orderBy('closedAt', 'desc')
   );
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => d.data() as ClosedSale));
-  });
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => d.data() as ClosedSale)),
+    logSnapshotError('closedSalesSince')
+  );
 }
 
 export function subscribeClosedSalesRange(
@@ -69,9 +80,11 @@ export function subscribeClosedSalesRange(
     where('closedAt', '<=', toIso),
     orderBy('closedAt', 'desc')
   );
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => d.data() as ClosedSale));
-  });
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => d.data() as ClosedSale)),
+    logSnapshotError('closedSalesRange')
+  );
 }
 
 export type CloseTableResult = 'ok' | 'not-open' | 'not-found' | 'unpaid';
@@ -156,9 +169,11 @@ export async function clearClosedTablesAndSummarize(
 }
 
 export function subscribeOrgUsers(orgId: string, cb: (users: UserProfile[]) => void): Unsubscribe {
-  return onSnapshot(orgUsersCol(orgId), (snap) => {
-    cb(snap.docs.map((d) => d.data() as UserProfile));
-  });
+  return onSnapshot(
+    orgUsersCol(orgId),
+    (snap) => cb(snap.docs.map((d) => d.data() as UserProfile)),
+    logSnapshotError('orgUsers')
+  );
 }
 
 export function setOrgUserActive(orgId: string, uid: string, active: boolean): Promise<void> {
@@ -171,7 +186,9 @@ export function subscribeAuditLog(
   cb: (entries: AuditLogEntry[]) => void
 ): Unsubscribe {
   const q = query(auditLogCol(orgId), orderBy('timestamp', 'desc'), limit(pageSize));
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as AuditLogEntry)));
-  });
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as AuditLogEntry))),
+    logSnapshotError('auditLog')
+  );
 }

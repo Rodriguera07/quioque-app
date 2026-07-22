@@ -58,20 +58,32 @@ let profileUnsubscribe: Unsubscribe | null = null;
 
 function watchProfile(uid: string, orgId: string) {
   profileUnsubscribe?.();
-  profileUnsubscribe = onSnapshot(doc(db, 'organizations', orgId, 'users', uid), (snap) => {
-    if (!snap.exists()) {
-      useAuthStore.setState({ status: 'unauthenticated', user: null });
-      return;
-    }
-    const profile = snap.data() as UserProfile;
-    if (!profile.active) {
+  profileUnsubscribe = onSnapshot(
+    doc(db, 'organizations', orgId, 'users', uid),
+    (snap) => {
+      if (!snap.exists()) {
+        useAuthStore.setState({ status: 'unauthenticated', user: null });
+        return;
+      }
+      const profile = snap.data() as UserProfile;
+      if (!profile.active) {
+        profileUnsubscribe?.();
+        profileUnsubscribe = null;
+        signOut(auth);
+        return;
+      }
+      useAuthStore.setState({ status: 'authenticated', user: profile });
+    },
+    (err) => {
+      // Sem isso, um erro aqui (ex.: permissão revogada, sem conexão na
+      // primeira carga) deixava o usuário preso na tela de loading para
+      // sempre, sem cair de volta no login.
+      console.warn('[firestore] listener "profile" falhou', err);
       profileUnsubscribe?.();
       profileUnsubscribe = null;
-      signOut(auth);
-      return;
+      useAuthStore.setState({ status: 'unauthenticated', user: null });
     }
-    useAuthStore.setState({ status: 'authenticated', user: profile });
-  });
+  );
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
