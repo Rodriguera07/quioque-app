@@ -34,6 +34,7 @@ yarn-error.*
 .claude/
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -42,3 +43,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+firebase-debug.log
+firebase-debug.*.log
+
+# Service account key used only by the local bootstrap script — never commit
+scripts/serviceAccountKey.json

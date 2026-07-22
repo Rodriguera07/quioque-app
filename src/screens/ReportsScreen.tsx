@@ -7,12 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
-import { usePosStore } from '../context/usePosStore';
+import { useAuthStore } from '../context/useAuthStore';
+import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
 import { RootStackParamList } from '../navigation/types';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { formatCurrency, formatDateLabel } from '../utils/format';
-import { getAllSales, getPeriodReport } from '../utils/reports';
+import { getPeriodReport } from '../utils/reports';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reports'>;
 
@@ -47,15 +48,12 @@ function formatShortRange(start: Date, end: Date) {
 }
 
 export function ReportsScreen({ navigation }: Props) {
-  const history = usePosStore((s) => s.history);
-  const closedSalesToday = usePosStore((s) => s.closedSalesToday);
+  const orgId = useAuthStore((s) => s.user?.orgId ?? null);
 
   const [preset, setPreset] = useState<PeriodPreset>('7d');
   const [startDate, setStartDate] = useState(subDays(new Date(), 6));
   const [endDate, setEndDate] = useState(new Date());
   const [pickerTarget, setPickerTarget] = useState<'start' | 'end' | null>(null);
-
-  const allSales = useMemo(() => getAllSales(history, closedSalesToday), [history, closedSalesToday]);
 
   const range = useMemo(() => {
     if (preset === 'custom') return { start: startDate, end: endDate };
@@ -63,10 +61,9 @@ export function ReportsScreen({ navigation }: Props) {
     return { start: subDays(new Date(), days - 1), end: new Date() };
   }, [preset, startDate, endDate]);
 
-  const report = useMemo(
-    () => getPeriodReport(allSales, range.start, range.end),
-    [allSales, range]
-  );
+  const { sales } = useClosedSalesRange(orgId, range.start, range.end);
+
+  const report = useMemo(() => getPeriodReport(sales, range.start, range.end), [sales, range]);
 
   const topMax = report.topItems[0]?.quantity ?? 1;
   const avgPerSale = report.salesCount > 0 ? report.totalRevenue / report.salesCount : 0;

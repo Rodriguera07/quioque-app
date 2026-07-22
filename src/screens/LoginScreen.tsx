@@ -27,7 +27,7 @@ const AWNING_COLORS = [
 
 export function LoginScreen() {
   const login = useAuthStore((s) => s.login);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -55,22 +55,20 @@ export function LoginScreen() {
     ]).start();
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('');
-    if (!username.trim() || !password.trim()) {
-      setError('Preencha usuário e senha.');
+    if (!email.trim() || !password.trim()) {
+      setError('Preencha e-mail e senha.');
       runShake();
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const ok = login(username, password);
-      setLoading(false);
-      if (!ok) {
-        setError('Usuário ou senha inválidos.');
-        runShake();
-      }
-    }, 350);
+    const { ok, error: loginError } = await login(email, password);
+    setLoading(false);
+    if (!ok) {
+      setError(loginError ?? 'E-mail ou senha inválidos.');
+      runShake();
+    }
   };
 
   const brandStyle = {
@@ -114,7 +112,7 @@ export function LoginScreen() {
             <View style={styles.card}>
               <Text style={styles.cardLabel}>ACESSO AO CAIXA</Text>
 
-              <Text style={styles.fieldLabel}>USUÁRIO</Text>
+              <Text style={styles.fieldLabel}>E-MAIL</Text>
               <View
                 style={[styles.inputWrap, focusedField === 'user' && styles.inputWrapFocused]}
               >
@@ -124,17 +122,18 @@ export function LoginScreen() {
                   color={focusedField === 'user' ? colors.sand : colors.textMuted}
                 />
                 <TextInput
-                  value={username}
+                  value={email}
                   onChangeText={(v) => {
-                    setUsername(v);
+                    setEmail(v);
                     if (error) setError('');
                   }}
                   onFocus={() => setFocusedField('user')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="admin"
+                  placeholder="voce@quiosque.com"
                   placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  keyboardType="email-address"
                   style={styles.input}
                   returnKeyType="next"
                 />
@@ -194,11 +193,6 @@ export function LoginScreen() {
               </AnimatedPressable>
             </View>
             <ReceiptTornEdge />
-
-            <View style={styles.hintWrap}>
-              <Text style={styles.hintTitle}>AMBIENTE DE TESTE</Text>
-              <Text style={styles.hint}>admin · admin123</Text>
-            </View>
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -323,21 +317,5 @@ const styles = StyleSheet.create({
   enterBtnText: {
     ...typography.h3,
     color: colors.textInverse,
-  },
-  hintWrap: {
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-  hintTitle: {
-    ...typography.caption,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    color: colors.textMuted,
-  },
-  hint: {
-    ...typography.bodySm,
-    fontFamily: monoFontFamily,
-    color: colors.textSecondary,
-    marginTop: 3,
   },
 });

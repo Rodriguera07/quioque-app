@@ -1,0 +1,8 @@
+{
+  "name": "quiosque-admin-scripts",
+  "private": true,
+  "description": "Scripts locais de manutenção (fora do app). Não faz parte do bundle do Expo.",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

@@ -1,28 +1,42 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
 import {
-  ClosedSale,
-  DaySummary,
-  MenuItem,
-  OrderItem,
-  PaymentMethod,
-  SplitPayment,
-  Table,
-} from '../types';
+  clearClosedTablesAndSummarize,
+  closeTableTransaction,
+  newTableId,
+  subscribeClosedSalesSince,
+  subscribeTables,
+  updateTable,
+  setTable,
+  type CloseTableResult,
+} from '../services/firestoreOrg';
+import { logAuditEvent } from '../services/auditLog';
+import { ClosedSale, DaySummary, MenuItem, OrderItem, PaymentMethod, SplitPayment, Table } from '../types';
+import {
+  MAX_SPLIT_COUNT,
+  MIN_SPLIT_COUNT,
+  PAID_EPSILON,
+  computeNextPaymentAmount,
+  computeTotals,
+  round2,
+} from '../utils/billing';
 import { formatDateKey } from '../utils/format';
 import { generateId } from '../utils/id';
+import type { Unsubscribe } from 'firebase/firestore';
 
-const SERVICE_FEE_RATE = 0.1;
-const MIN_SPLIT_COUNT = 2;
-const MAX_SPLIT_COUNT = 20;
-const PAID_EPSILON = 0.004; // margem de segurança para comparação de centavos
+interface CurrentUser {
+  uid: string;
+  displayName: string;
+}
 
 interface PosState {
   tables: Table[];
   closedSalesToday: ClosedSale[];
   currentDay: string;
-  history: DaySummary[];
+  orgId: string | null;
+  currentUser: CurrentUser | null;
+
+  initOrgSync: (orgId: string, user: CurrentUser) => void;
+  teardownOrgSync: () => void;
 
   openTable: (label: string, waiterName?: string) => string;
   addItem: (tableId: string, menuItem: MenuItem, quantity?: number) => void;
@@ -32,321 +46,297 @@ interface PosState {
   toggleServiceFee: (tableId: string) => void;
   toggleSplit: (tableId: string) => void;
   setSplitCount: (tableId: string, count: number) => void;
-  recordPayment: (tableId: string, method: PaymentMethod) => void;
-  closeTable: (tableId: string) => void;
-  endDay: () => DaySummary | null;
+  recordPayment: (tableId: string, method: PaymentMethod) => Promise<void>;
+  closeTable: (tableId: string) => Promise<CloseTableResult>;
+  endDay: () => Promise<DaySummary | null>;
 }
 
-function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
+let tablesUnsubscribe: Unsubscribe | null = null;
+let closedSalesUnsubscribe: Unsubscribe | null = null;
 
-function computeTotals(items: OrderItem[], serviceFeeEnabled: boolean) {
-  const subtotal = round2(items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0));
-  const serviceFeeAmount = serviceFeeEnabled ? round2(subtotal * SERVICE_FEE_RATE) : 0;
-  const total = round2(subtotal + serviceFeeAmount);
-  return { subtotal, serviceFeeAmount, total };
-}
+export const usePosStore = create<PosState>((set, get) => ({
+  tables: [],
+  closedSalesToday: [],
+  currentDay: formatDateKey(),
+  orgId: null,
+  currentUser: null,
 
-// Quanto será cobrado no PRÓXIMO pagamento registrado para a mesa. Sem
-// split, é o valor restante inteiro (fecha em um único pagamento). Com
-// split, é o valor por pessoa — exceto no último pagamento, que absorve
-// o resto do arredondamento para que a soma bata exatamente com o total.
-function computeNextPaymentAmount(table: Table): number {
-  const { total } = computeTotals(table.items, table.serviceFeeEnabled);
-  const paidTotal = round2(table.payments.reduce((sum, p) => sum + p.amount, 0));
-  const remaining = Math.max(0, round2(total - paidTotal));
+  initOrgSync: (orgId, user) => {
+    tablesUnsubscribe?.();
+    closedSalesUnsubscribe?.();
 
-  if (!table.splitEnabled) return remaining;
+    set({ orgId, currentUser: user, currentDay: formatDateKey() });
 
-  const unit = round2(total / table.splitCount);
-  const isLastPerson = table.payments.length >= table.splitCount - 1;
-  return isLastPerson ? remaining : Math.min(unit, remaining);
-}
+    tablesUnsubscribe = subscribeTables(orgId, (tables) => set({ tables }));
 
-export const usePosStore = create<PosState>()(
-  persist(
-    (set, get) => ({
-      tables: [],
-      closedSalesToday: [],
-      currentDay: formatDateKey(),
-      history: [],
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    closedSalesUnsubscribe = subscribeClosedSalesSince(
+      orgId,
+      startOfToday.toISOString(),
+      (closedSalesToday) => set({ closedSalesToday })
+    );
+  },
 
-      openTable: (label, waiterName) => {
-        const id = generateId('table');
-        const newTable: Table = {
-          id,
-          label: label.trim(),
-          waiterName: waiterName?.trim() || undefined,
-          status: 'open',
-          items: [],
-          serviceFeeEnabled: false,
-          splitEnabled: false,
-          splitCount: MIN_SPLIT_COUNT,
-          payments: [],
-          openedAt: new Date().toISOString(),
-        };
-        set((state) => ({ tables: [...state.tables, newTable] }));
-        return id;
-      },
+  teardownOrgSync: () => {
+    tablesUnsubscribe?.();
+    closedSalesUnsubscribe?.();
+    tablesUnsubscribe = null;
+    closedSalesUnsubscribe = null;
+    set({ tables: [], closedSalesToday: [], orgId: null, currentUser: null });
+  },
 
-      addItem: (tableId, menuItem, quantity = 1) => {
-        set((state) => ({
-          tables: state.tables.map((table) => {
-            if (table.id !== tableId) return table;
-            const existing = table.items.find((i) => i.menuItemId === menuItem.id);
-            let items: OrderItem[];
-            if (existing) {
-              items = table.items.map((i) =>
-                i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i
-              );
-            } else {
-              items = [
-                ...table.items,
-                {
-                  id: generateId('item'),
-                  menuItemId: menuItem.id,
-                  name: menuItem.name,
-                  category: menuItem.category,
-                  unitPrice: menuItem.price,
-                  quantity,
-                },
-              ];
-            }
-            return { ...table, items };
-          }),
-        }));
-      },
+  openTable: (label, waiterName) => {
+    const { orgId, currentUser } = get();
+    if (!orgId || !currentUser) return '';
 
-      incrementItem: (tableId, orderItemId) => {
-        set((state) => ({
-          tables: state.tables.map((table) =>
-            table.id !== tableId
-              ? table
-              : {
-                  ...table,
-                  items: table.items.map((i) =>
-                    i.id === orderItemId ? { ...i, quantity: i.quantity + 1 } : i
-                  ),
-                }
-          ),
-        }));
-      },
+    const id = newTableId(orgId);
+    const trimmedLabel = label.trim();
+    const newTable: Table = {
+      id,
+      label: trimmedLabel,
+      waiterName: waiterName?.trim() || undefined,
+      status: 'open',
+      items: [],
+      serviceFeeEnabled: false,
+      splitEnabled: false,
+      splitCount: MIN_SPLIT_COUNT,
+      payments: [],
+      openedAt: new Date().toISOString(),
+      openedByUserId: currentUser.uid,
+      openedByUserName: currentUser.displayName,
+    };
 
-      decrementItem: (tableId, orderItemId) => {
-        set((state) => ({
-          tables: state.tables.map((table) => {
-            if (table.id !== tableId) return table;
-            const items = table.items
-              .map((i) => (i.id === orderItemId ? { ...i, quantity: i.quantity - 1 } : i))
-              .filter((i) => i.quantity > 0);
-            return { ...table, items };
-          }),
-        }));
-      },
+    setTable(orgId, newTable).catch((err) => console.warn('Falha ao abrir mesa', err));
+    logAuditEvent({
+      orgId,
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+      type: 'table_opened',
+      tableId: id,
+      tableLabel: trimmedLabel,
+    });
 
-      removeItem: (tableId, orderItemId) => {
-        set((state) => ({
-          tables: state.tables.map((table) =>
-            table.id !== tableId
-              ? table
-              : { ...table, items: table.items.filter((i) => i.id !== orderItemId) }
-          ),
-        }));
-      },
+    return id;
+  },
 
-      toggleServiceFee: (tableId) => {
-        set((state) => ({
-          tables: state.tables.map((table) =>
-            table.id !== tableId
-              ? table
-              : { ...table, serviceFeeEnabled: !table.serviceFeeEnabled }
-          ),
-        }));
-      },
+  addItem: (tableId, menuItem, quantity = 1) => {
+    const { orgId, currentUser, tables } = get();
+    if (!orgId || !currentUser) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
 
-      toggleSplit: (tableId) => {
-        set((state) => ({
-          tables: state.tables.map((table) =>
-            table.id !== tableId || table.payments.length > 0
-              ? table
-              : { ...table, splitEnabled: !table.splitEnabled }
-          ),
-        }));
-      },
-
-      setSplitCount: (tableId, count) => {
-        const clamped = Math.min(MAX_SPLIT_COUNT, Math.max(MIN_SPLIT_COUNT, Math.round(count)));
-        set((state) => ({
-          tables: state.tables.map((table) =>
-            table.id !== tableId || table.payments.length > 0
-              ? table
-              : { ...table, splitCount: clamped }
-          ),
-        }));
-      },
-
-      recordPayment: (tableId, method) => {
-        const table = get().tables.find((t) => t.id === tableId);
-        if (!table) return;
-        const amount = computeNextPaymentAmount(table);
-        if (amount <= 0) return;
-
-        const payment: SplitPayment = {
-          id: generateId('pay'),
-          method,
-          amount,
-          paidAt: new Date().toISOString(),
-        };
-
-        set((state) => ({
-          tables: state.tables.map((t) =>
-            t.id !== tableId ? t : { ...t, payments: [...t.payments, payment] }
-          ),
-        }));
-      },
-
-      closeTable: (tableId) => {
-        const table = get().tables.find((t) => t.id === tableId);
-        if (!table || table.items.length === 0) return;
-
-        const { subtotal, serviceFeeAmount, total } = computeTotals(
-          table.items,
-          table.serviceFeeEnabled
-        );
-        const paidTotal = round2(table.payments.reduce((sum, p) => sum + p.amount, 0));
-        if (paidTotal + PAID_EPSILON < total) return; // ainda falta pagamento
-
-        const closedAt = new Date().toISOString();
-
-        const closedSale: ClosedSale = {
-          id: generateId('sale'),
-          tableLabel: table.label,
-          waiterName: table.waiterName,
-          items: table.items,
-          subtotal,
-          serviceFeeAmount,
-          total,
-          payments: table.payments,
-          openedAt: table.openedAt,
-          closedAt,
-        };
-
-        set((state) => ({
-          closedSalesToday: [...state.closedSalesToday, closedSale],
-          tables: state.tables.map((t) =>
-            t.id === tableId
-              ? { ...t, status: 'closed', closedAt, subtotal, serviceFeeAmount, total }
-              : t
-          ),
-        }));
-      },
-
-      endDay: () => {
-        const { closedSalesToday, currentDay } = get();
-        if (closedSalesToday.length === 0) {
-          set({ tables: [], closedSalesToday: [], currentDay: formatDateKey() });
-          return null;
-        }
-
-        const paymentBreakdown: Record<PaymentMethod, number> = {
-          pix: 0,
-          dinheiro: 0,
-          debito: 0,
-          credito: 0,
-        };
-        let totalRevenue = 0;
-        closedSalesToday.forEach((sale) => {
-          sale.payments.forEach((payment) => {
-            paymentBreakdown[payment.method] = round2(
-              paymentBreakdown[payment.method] + payment.amount
-            );
-          });
-          totalRevenue += sale.total;
-        });
-
-        const summary: DaySummary = {
-          date: currentDay,
-          totalRevenue: round2(totalRevenue),
-          sales: closedSalesToday,
-          closedAt: new Date().toISOString(),
-          paymentBreakdown,
-        };
-
-        set((state) => ({
-          history: [summary, ...state.history],
-          tables: [],
-          closedSalesToday: [],
-          currentDay: formatDateKey(),
-        }));
-
-        return summary;
-      },
-    }),
-    {
-      name: 'quiosque-pos-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
-      migrate: (persisted: any, version) => {
-        if (!persisted || version >= 1) return persisted;
-
-        // v0 → v1: `paymentMethod` único (Table/ClosedSale) virou `payments:
-        // SplitPayment[]` (suporte a divisão de conta). Dados antigos salvos
-        // no AsyncStorage não têm `payments`, o que quebrava qualquer leitura
-        // (`sale.payments.forEach`) com "Cannot read property 'forEach' of
-        // undefined". Reconstituímos o pagamento único como uma entrada de
-        // split para manter o histórico legível.
-        const migrateSale = (sale: any) => {
-          if (Array.isArray(sale.payments)) return sale;
-          const { paymentMethod, ...rest } = sale;
-          return {
-            ...rest,
-            payments: paymentMethod
-              ? [
-                  {
-                    id: generateId('payment'),
-                    method: paymentMethod,
-                    amount: sale.total ?? 0,
-                    paidAt: sale.closedAt ?? new Date().toISOString(),
-                  },
-                ]
-              : [],
-          };
-        };
-
-        const migrateTable = (table: any) => {
-          if (Array.isArray(table.payments)) return table;
-          const { paymentMethod, ...rest } = table;
-          return {
-            ...rest,
-            splitEnabled: false,
-            splitCount: MIN_SPLIT_COUNT,
-            payments: paymentMethod
-              ? [
-                  {
-                    id: generateId('payment'),
-                    method: paymentMethod,
-                    amount: table.total ?? 0,
-                    paidAt: table.closedAt ?? new Date().toISOString(),
-                  },
-                ]
-              : [],
-          };
-        };
-
-        return {
-          ...persisted,
-          tables: (persisted.tables ?? []).map(migrateTable),
-          closedSalesToday: (persisted.closedSalesToday ?? []).map(migrateSale),
-          history: (persisted.history ?? []).map((day: any) => ({
-            ...day,
-            sales: (day.sales ?? []).map(migrateSale),
-          })),
-        };
-      },
+    const existing = table.items.find((i) => i.menuItemId === menuItem.id);
+    let items: OrderItem[];
+    if (existing) {
+      items = table.items.map((i) =>
+        i.id === existing.id ? { ...i, quantity: i.quantity + quantity } : i
+      );
+    } else {
+      items = [
+        ...table.items,
+        {
+          id: generateId('item'),
+          menuItemId: menuItem.id,
+          name: menuItem.name,
+          category: menuItem.category,
+          unitPrice: menuItem.price,
+          quantity,
+        },
+      ];
     }
-  )
-);
+
+    updateTable(orgId, tableId, { items }).catch((err) =>
+      console.warn('Falha ao adicionar item', err)
+    );
+    logAuditEvent({
+      orgId,
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+      type: 'items_added',
+      tableId,
+      tableLabel: table.label,
+      detail: `${quantity}x ${menuItem.name}`,
+    });
+  },
+
+  incrementItem: (tableId, orderItemId) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+    const items = table.items.map((i) =>
+      i.id === orderItemId ? { ...i, quantity: i.quantity + 1 } : i
+    );
+    updateTable(orgId, tableId, { items }).catch((err) =>
+      console.warn('Falha ao atualizar item', err)
+    );
+  },
+
+  decrementItem: (tableId, orderItemId) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+    const items = table.items
+      .map((i) => (i.id === orderItemId ? { ...i, quantity: i.quantity - 1 } : i))
+      .filter((i) => i.quantity > 0);
+    updateTable(orgId, tableId, { items }).catch((err) =>
+      console.warn('Falha ao atualizar item', err)
+    );
+  },
+
+  removeItem: (tableId, orderItemId) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+    const items = table.items.filter((i) => i.id !== orderItemId);
+    updateTable(orgId, tableId, { items }).catch((err) =>
+      console.warn('Falha ao remover item', err)
+    );
+  },
+
+  toggleServiceFee: (tableId) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+    updateTable(orgId, tableId, { serviceFeeEnabled: !table.serviceFeeEnabled }).catch((err) =>
+      console.warn('Falha ao atualizar taxa de serviço', err)
+    );
+  },
+
+  toggleSplit: (tableId) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table || table.payments.length > 0) return;
+    updateTable(orgId, tableId, { splitEnabled: !table.splitEnabled }).catch((err) =>
+      console.warn('Falha ao atualizar divisão de conta', err)
+    );
+  },
+
+  setSplitCount: (tableId, count) => {
+    const { orgId, tables } = get();
+    if (!orgId) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table || table.payments.length > 0) return;
+    const clamped = Math.min(MAX_SPLIT_COUNT, Math.max(MIN_SPLIT_COUNT, Math.round(count)));
+    updateTable(orgId, tableId, { splitCount: clamped }).catch((err) =>
+      console.warn('Falha ao atualizar divisão de conta', err)
+    );
+  },
+
+  recordPayment: async (tableId, method) => {
+    const { orgId, currentUser, tables } = get();
+    if (!orgId || !currentUser) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+    const amount = computeNextPaymentAmount(table);
+    if (amount <= 0) return;
+
+    const payment: SplitPayment = {
+      id: generateId('pay'),
+      method,
+      amount,
+      paidAt: new Date().toISOString(),
+    };
+
+    // Aguardado (não fire-and-forget) porque a tela de fechamento de mesa
+    // depende de o pagamento já estar confirmado no servidor antes de
+    // chamar closeTable — a transação de fechamento revalida o saldo lendo
+    // o documento direto do servidor.
+    await updateTable(orgId, tableId, { payments: [...table.payments, payment] });
+    logAuditEvent({
+      orgId,
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+      type: 'payment_recorded',
+      tableId,
+      tableLabel: table.label,
+      detail: `${PAYMENT_METHOD_LABEL[method]} · ${amount.toFixed(2)}`,
+    });
+  },
+
+  closeTable: async (tableId) => {
+    const { orgId, currentUser, tables } = get();
+    if (!orgId || !currentUser) return 'not-found';
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return 'not-found';
+
+    const saleId = generateId('sale');
+    const result = await closeTableTransaction(orgId, tableId, saleId, {
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+    });
+
+    if (result === 'ok') {
+      logAuditEvent({
+        orgId,
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        type: 'table_closed',
+        tableId,
+        tableLabel: table.label,
+      });
+    }
+
+    return result;
+  },
+
+  endDay: async () => {
+    const { orgId, currentUser, closedSalesToday, currentDay } = get();
+    if (!orgId || !currentUser) return null;
+    if (closedSalesToday.length === 0) {
+      set({ currentDay: formatDateKey() });
+      return null;
+    }
+
+    const paymentBreakdown: Record<PaymentMethod, number> = {
+      pix: 0,
+      dinheiro: 0,
+      debito: 0,
+      credito: 0,
+    };
+    let totalRevenue = 0;
+    closedSalesToday.forEach((sale) => {
+      sale.payments.forEach((payment) => {
+        paymentBreakdown[payment.method] = round2(
+          paymentBreakdown[payment.method] + payment.amount
+        );
+      });
+      totalRevenue += sale.total;
+    });
+
+    const closedAt = new Date().toISOString();
+    const summary: DaySummary = {
+      date: currentDay,
+      totalRevenue: round2(totalRevenue),
+      sales: closedSalesToday,
+      closedAt,
+      paymentBreakdown,
+    };
+
+    await clearClosedTablesAndSummarize(orgId, {
+      date: currentDay,
+      totalRevenue: summary.totalRevenue,
+      paymentBreakdown,
+      closedAt,
+    });
+
+    set({ currentDay: formatDateKey() });
+
+    return summary;
+  },
+}));
+
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  pix: 'PIX',
+  dinheiro: 'Dinheiro',
+  debito: 'Débito',
+  credito: 'Crédito',
+};
 
 // --- Selectors / helpers ---
 
@@ -432,4 +422,4 @@ export function getTopSellingItems(
     .slice(0, limit);
 }
 
-export { MAX_SPLIT_COUNT, MIN_SPLIT_COUNT, SERVICE_FEE_RATE };
+export { MAX_SPLIT_COUNT, MIN_SPLIT_COUNT, PAID_EPSILON, SERVICE_FEE_RATE } from '../utils/billing';

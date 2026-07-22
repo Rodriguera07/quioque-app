@@ -45,6 +45,10 @@ export interface Table {
   subtotal?: number;
   serviceFeeAmount?: number;
   total?: number;
+  openedByUserId?: string;
+  openedByUserName?: string;
+  closedByUserId?: string;
+  closedByUserName?: string;
 }
 
 export interface ClosedSale {
@@ -58,6 +62,10 @@ export interface ClosedSale {
   payments: SplitPayment[];
   openedAt: string;
   closedAt: string;
+  openedByUserId?: string;
+  openedByUserName?: string;
+  closedByUserId: string;
+  closedByUserName: string;
 }
 
 export interface DaySummary {
@@ -66,4 +74,38 @@ export interface DaySummary {
   sales: ClosedSale[];
   closedAt: string;
   paymentBreakdown: Record<PaymentMethod, number>;
+}
+
+// --- Usuários, papéis e auditoria ---
+
+export type Role = 'admin' | 'staff';
+
+export interface UserProfile {
+  uid: string;
+  orgId: string;
+  email: string;
+  displayName: string;
+  role: Role;
+  active: boolean;
+  createdAt: string; // ISO
+  createdBy: string; // uid de quem criou
+}
+
+export type AuditEventType =
+  | 'login'
+  | 'logout'
+  | 'table_opened'
+  | 'items_added'
+  | 'table_closed'
+  | 'payment_recorded';
+
+export interface AuditLogEntry {
+  id: string;
+  type: AuditEventType;
+  userId: string;
+  userName: string;
+  timestamp: string; // ISO
+  tableId?: string;
+  tableLabel?: string;
+  detail?: string;
 }

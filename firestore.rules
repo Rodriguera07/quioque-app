@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function pointer() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOrgMember(orgId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && pointer().orgId == orgId;
+    }
+
+    function isOrgAdmin(orgId) {
+      return isOrgMember(orgId) && pointer().role == 'admin';
+    }
+
+    // Ponteiro uid -> org/role. O próprio usuário pode ler o seu; só um admin
+    // da organização pode criar o ponteiro de um novo usuário (é assim que o
+    // cadastro de funcionários funciona — o admin cria a conta no Auth pelo
+    // app e grava esse ponteiro na sequência). Nunca é alterado depois.
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isOrgAdmin(request.resource.data.orgId)
+        && request.resource.data.role in ['admin', 'staff'];
+      allow update, delete: if false;
+    }
+
+    match /organizations/{orgId} {
+      allow read: if isOrgMember(orgId);
+      allow write: if false; // criação/edição da org é feita fora do app (bootstrap manual)
+    }
+
+    // Perfis completos dos usuários da organização. Qualquer membro pode ler
+    // o PRÓPRIO perfil (necessário para restaurar a sessão), mas listar toda
+    // a equipe é exclusivo de admin — é isso que alimenta a tela de gestão
+    // de usuários.
+    match /organizations/{orgId}/users/{uid} {
+      allow get: if isOrgMember(orgId) && (request.auth.uid == uid || isOrgAdmin(orgId));
+      allow list: if isOrgAdmin(orgId);
+      // Só um admin cadastra novo usuário, e só com os campos esperados
+      // (evita que o novo perfil já nasça "active: false" ou com papel
+      // inválido, por exemplo).
+      allow create: if isOrgAdmin(orgId)
+        && request.resource.data.uid == uid
+        && request.resource.data.orgId == orgId
+        && request.resource.data.role in ['admin', 'staff']
+        && request.resource.data.active == true;
+      // Admin pode atualizar campos como "active", mas não pode alterar "role"
+      // por aqui (evita auto-promoção); troca de papel fica fora do app por ora.
+      allow update: if isOrgAdmin(orgId)
+        && !('role' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if false;
+    }
+
+    // Mesas — quadro ao vivo do dia.
+    match /organizations/{orgId}/tables/{tableId} {
+      allow read, write: if isOrgMember(orgId);
+    }
+
+    // Vendas fechadas — histórico permanente, não editável nem apagável pelo app.
+    match /organizations/{orgId}/closedSales/{saleId} {
+      allow read: if isOrgMember(orgId);
+      allow create: if isOrgMember(orgId);
+      allow update, delete: if false;
+    }
+
+    // Rollups diários usados pelos Relatórios.
+    match /organizations/{orgId}/daySummaries/{date} {
+      allow read: if isOrgMember(orgId);
+      allow create, update: if isOrgMember(orgId);
+      allow delete: if false;
+    }
+
+    // Log de auditoria — qualquer usuário da organização pode gravar eventos
+    // em seu próprio nome (é assim que suas próprias ações ficam auditadas),
+    // mas a leitura é exclusiva de admin, já que o objetivo é o admin
+    // acompanhar o que a equipe fez.
+    match /organizations/{orgId}/auditLog/{entryId} {
+      allow read: if isOrgAdmin(orgId);
+      allow create: if isOrgMember(orgId) && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

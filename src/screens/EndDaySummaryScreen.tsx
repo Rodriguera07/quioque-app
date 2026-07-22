@@ -7,25 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
-import { PaymentMethod, SplitPayment } from '../types';
+import { PaymentMethod } from '../types';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
+import { PAYMENT_LABELS, describeSalePayments } from '../utils/payments';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EndDaySummary'>;
-
-const PAYMENT_LABELS: Record<PaymentMethod, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  pix: { label: 'PIX', icon: 'qr-code-outline', color: colors.pix },
-  dinheiro: { label: 'Dinheiro', icon: 'cash-outline', color: colors.cash },
-  debito: { label: 'Débito', icon: 'card-outline', color: colors.debit },
-  credito: { label: 'Crédito', icon: 'card', color: colors.credit },
-};
-
-function describeSalePayments(payments: SplitPayment[]): string {
-  const uniqueMethods = Array.from(new Set(payments.map((p) => p.method)));
-  if (payments.length <= 1) {
-    return uniqueMethods.length > 0 ? PAYMENT_LABELS[uniqueMethods[0]].label : '—';
-  }
-  return `Dividido · ${payments.length} pessoas`;
-}
 
 export function EndDaySummaryScreen({ navigation, route }: Props) {
   const { summary } = route.params;

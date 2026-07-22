@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
@@ -28,7 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 export function DashboardScreen({ navigation }: Props) {
   useTick(30000); // mantém o tempo decorrido das mesas atualizado
 
-  const userName = useAuthStore((s) => s.userName);
+  const userName = useAuthStore((s) => s.user?.displayName ?? null);
   const logout = useAuthStore((s) => s.logout);
 
   const tables = usePosStore((s) => s.tables);
@@ -69,7 +70,7 @@ export function DashboardScreen({ navigation }: Props) {
     );
     if (!confirmed) return;
 
-    const summary = endDay();
+    const summary = await endDay();
     if (summary) {
       navigation.navigate('EndDaySummary', { summary });
     }
@@ -84,6 +85,14 @@ export function DashboardScreen({ navigation }: Props) {
       >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <AnimatedPressable
+            style={styles.menuButton}
+            accessibilityLabel="Abrir menu"
+            accessibilityRole="button"
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          >
+            <Ionicons name="menu" size={24} color={colors.textInverse} />
+          </AnimatedPressable>
           <LinearGradient
             colors={[colors.emerald, colors.primary]}
             start={{ x: 0, y: 0 }}
@@ -282,6 +291,19 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
     marginTop: 1,
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   headerActions: {
     flexDirection: 'row',

@@ -9,13 +9,14 @@ import {
   getPaidPeopleCount,
   getPaidTotal,
   getRemainingAmount,
-  isTableFullyPaid,
+  PAID_EPSILON,
   SERVICE_FEE_RATE,
   usePosStore,
 } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
+import { showAlert } from '../utils/alert';
 import { formatCurrency } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CloseTable'>;
@@ -55,17 +56,35 @@ export function CloseTableScreen({ navigation, route }: Props) {
   const nextAmount = getNextPaymentAmount(table);
   const currentPersonNumber = Math.min(paidCount + 1, table.splitCount);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selected) return;
     setConfirming(true);
-    recordPayment(tableId, selected);
 
-    const updated = usePosStore.getState().tables.find((t) => t.id === tableId);
-    if (updated && isTableFullyPaid(updated)) {
-      closeTable(tableId);
-      navigation.popToTop();
+    // Calculado a partir do estado ANTES do pagamento (não depois), pois
+    // recordPayment só resolve quando o servidor confirma a escrita — nesse
+    // meio-tempo o listener local ainda não necessariamente atualizou
+    // `tables`, então ler o estado "pós-pagamento" seria pouco confiável.
+    const willBeFullyPaid = remaining - nextAmount <= PAID_EPSILON;
+
+    try {
+      await recordPayment(tableId, selected);
+    } catch (err) {
+      setConfirming(false);
+      showAlert('Erro ao registrar pagamento', 'Verifique sua conexão e tente novamente.');
       return;
     }
+
+    if (willBeFullyPaid) {
+      const result = await closeTable(tableId);
+      if (result === 'ok') {
+        navigation.popToTop();
+        return;
+      }
+      showAlert('Não foi possível fechar a mesa', 'Tente novamente em instantes.');
+      setConfirming(false);
+      return;
+    }
+
     setSelected(null);
     setConfirming(false);
   };

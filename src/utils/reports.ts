@@ -1,4 +1,4 @@
-import { ClosedSale, DaySummary, PaymentMethod } from '../types';
+import { ClosedSale, PaymentMethod } from '../types';
 
 export interface TopSellingItem {
   menuItemId: string;
@@ -12,10 +12,6 @@ export interface PeriodReport {
   salesCount: number;
   topItems: TopSellingItem[];
   paymentBreakdown: Record<PaymentMethod, number>;
-}
-
-export function getAllSales(history: DaySummary[], closedSalesToday: ClosedSale[]): ClosedSale[] {
-  return [...history.flatMap((h) => h.sales), ...closedSalesToday];
 }
 
 export function getPeriodReport(sales: ClosedSale[], startDate: Date, endDate: Date): PeriodReport {

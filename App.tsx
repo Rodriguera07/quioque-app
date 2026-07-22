@@ -1,8 +1,9 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { initAuthListener } from './src/context/useAuthStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { colors } from './src/theme';
 
@@ -19,6 +20,8 @@ const navigationTheme = {
 };
 
 export default function App() {
+  useEffect(() => initAuthListener(), []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
