@@ -21,7 +21,22 @@ export function AppDrawer() {
         headerShown: false,
         drawerType: 'front',
         overlayColor: colors.overlay,
-        drawerStyle: { width: drawerWidth },
+        // Painel "flutua" sobre o conteúdo com cantos arredondados só do
+        // lado solto (direito) — o esquerdo fica colado na borda da tela.
+        // Sem overflow:hidden aqui: a sombra precisa vazar para fora do
+        // recorte; quem recorta o fundo/gradiente é o container interno em
+        // AppDrawerContent.
+        drawerStyle: {
+          width: drawerWidth,
+          backgroundColor: 'transparent',
+          borderTopRightRadius: 28,
+          borderBottomRightRadius: 28,
+          shadowColor: colors.black,
+          shadowOffset: { width: 8, height: 0 },
+          shadowOpacity: 0.2,
+          shadowRadius: 24,
+          elevation: 20,
+        },
         swipeEdgeWidth: 60,
       }}
       drawerContent={(props) => <AppDrawerContent {...props} />}
