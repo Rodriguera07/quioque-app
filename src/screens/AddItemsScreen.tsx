@@ -3,6 +3,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -76,9 +77,13 @@ export function AddItemsScreen({ navigation, route }: Props) {
     const orderItem = getOrderItem(item);
     return (
       <View style={styles.itemCard}>
-        <View style={styles.itemIconWrap}>
-          <Ionicons name={CATEGORY_ICONS[item.category]} size={18} color={colors.primary} />
-        </View>
+        {item.image ? (
+          <Image source={item.image} style={styles.itemThumb} />
+        ) : (
+          <View style={styles.itemIconWrap}>
+            <Ionicons name={CATEGORY_ICONS[item.category]} size={18} color={colors.primary} />
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={styles.itemName}>{item.name}</Text>
           {item.description ? <Text style={styles.itemDesc}>{item.description}</Text> : null}
@@ -330,6 +335,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  itemThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
   },
   itemName: {
     ...typography.h3,

@@ -1,3 +1,5 @@
+import { ImageSourcePropType } from 'react-native';
+
 export type MenuCategory = 'bebidas' | 'drinks' | 'doses' | 'porcoes' | 'pasteis';
 
 export interface MenuItem {
@@ -6,6 +8,7 @@ export interface MenuItem {
   category: MenuCategory;
   price: number;
   description?: string;
+  image?: ImageSourcePropType;
 }
 
 export interface OrderItem {
