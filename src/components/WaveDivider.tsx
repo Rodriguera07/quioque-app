@@ -11,7 +11,7 @@ interface Props {
 // Dia" da faixa de mini-estatísticas). O viewBox tem uma única onda que se
 // estica para preencher a largura real do cartão via preserveAspectRatio
 // "none" — não precisa medir o container como o ReceiptTornEdge faz.
-export function WaveDivider({ color = '#FFFFFF', opacity = 0.22 }: Props) {
+export function WaveDivider({ color = '#FFFFFF', opacity = 0.35 }: Props) {
   return (
     <View style={styles.wrap} pointerEvents="none">
       <Svg width="100%" height="100%" viewBox="0 0 100 10" preserveAspectRatio="none">

@@ -613,13 +613,12 @@ const styles = StyleSheet.create({
   },
   heroGlow: {
     position: 'absolute',
-    top: -60,
-    right: -40,
+    top: -55,
+    right: -35,
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: colors.coral,
-    opacity: 0.4,
+    backgroundColor: 'rgba(226, 96, 61, 0.65)',
   },
   heroInner: {
     padding: spacing.lg,
