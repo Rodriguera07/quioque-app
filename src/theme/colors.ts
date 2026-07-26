@@ -2,13 +2,13 @@
 // sunset-coral / golden-sand accent family as the dark theme.
 export const colors = {
   // Base — areia quente (bege claro, em vez do cinza frio anterior)
-  background: '#F1E8D4',
-  backgroundAlt: '#E8DCBE',
-  surface: '#FFFDF8',
-  surfaceElevated: '#FFFDF8',
-  surfaceHighlight: '#F3ECDA',
-  border: '#E6DBBF',
-  borderLight: '#DCCEA8',
+  background: '#F5ECD8',
+  backgroundAlt: '#EFE3C4',
+  surface: '#FFFDF7',
+  surfaceElevated: '#FFFDF7',
+  surfaceHighlight: '#FBF4E6',
+  border: '#ECE0C7',
+  borderLight: '#E3D6B4',
 
   // Marca — mar / turquesa
   primary: '#0D8FA6', // teal do oceano — interativo geral
@@ -36,9 +36,9 @@ export const colors = {
   info: '#0D8FA6',
 
   // Texto
-  textPrimary: '#211D14',
-  textSecondary: '#635B48',
-  textMuted: '#948B72',
+  textPrimary: '#2C2419',
+  textSecondary: '#8B7E69',
+  textMuted: '#B7A88C',
   textInverse: '#FFFFFF',
 
   // Formas de pagamento (cores distintas para facilitar leitura em gráficos)

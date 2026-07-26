@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
+import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { PulseDot } from '../components/PulseDot';
 import { TableCard } from '../components/TableCard';
@@ -18,7 +19,7 @@ import {
   getTopSellingItems,
   usePosStore,
 } from '../context/usePosStore';
-import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, serifFontFamily, spacing } from '../theme';
 import { RootStackParamList } from '../navigation/types';
 import { getDaySummary } from '../services/firestoreOrg';
 import { formatDateKey, formatTime } from '../utils/format';
@@ -30,10 +31,28 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 type EndDayDialog = 'blocked-open' | 'blocked-empty' | 'confirm' | null;
 
 const TOP_ITEMS_COUNT = 3;
+
+// Paleta "sol se pondo sobre o mar" exclusiva do cartão "Caixa do Dia" —
+// não faz parte do tema global porque só é usada aqui, igual à referência.
+const HERO = {
+  gradientStart: '#10938B',
+  gradientEnd: '#0A5551',
+  seaTeal900: '#0A5551',
+  seaTeal700: '#0E857E',
+  seaTeal500: '#18B0A2',
+  liveDot: '#5CF0CE',
+  trendGood: '#8DF3D6',
+  sunLight: '#FFE7B8',
+  sunMid: '#FFB65C',
+  sun500: '#FF9E4D',
+  sun600: '#EF7B36',
+  ambientGlow: 'rgba(255,207,143,0.3)',
+};
+
 const RANK_STYLE = [
-  { bg: colors.coralMuted, fg: colors.coral },
-  { bg: colors.primaryMuted, fg: colors.primary },
-  { bg: colors.sandMuted, fg: colors.sand },
+  { bg: '#FFE9C7', fg: HERO.sun600 },
+  { bg: '#E4F1EF', fg: HERO.seaTeal700 },
+  { bg: '#F6E7D9', fg: '#B07A47' },
 ];
 
 function splitCurrencyParts(value: number): { main: string; cents: string } {
@@ -139,23 +158,28 @@ export function DashboardScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <AnimatedPressable
+        <AnimatedPressable
+          style={styles.menuButtonWrap}
+          accessibilityLabel="Abrir menu"
+          accessibilityRole="button"
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+        >
+          <LinearGradient
+            colors={[HERO.seaTeal500, HERO.seaTeal700]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
             style={styles.menuButton}
-            accessibilityLabel="Abrir menu"
-            accessibilityRole="button"
-            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           >
-            <Ionicons name="menu" size={22} color={colors.textInverse} />
-          </AnimatedPressable>
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.greeting} numberOfLines={1}>
-              Olá, {userName ?? 'Gerente'}
-            </Text>
-            <Text style={styles.date} numberOfLines={1}>
-              {capitalize(dateLabel)}
-            </Text>
-          </View>
+            <Ionicons name="menu" size={20} color={colors.white} />
+          </LinearGradient>
+        </AnimatedPressable>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.greeting} numberOfLines={1}>
+            Olá, {userName ?? 'Gerente'}
+          </Text>
+          <Text style={styles.date} numberOfLines={1}>
+            {capitalize(dateLabel)}
+          </Text>
         </View>
         <View style={styles.headerActions}>
           <AnimatedPressable
@@ -163,175 +187,203 @@ export function DashboardScreen({ navigation }: Props) {
             accessibilityLabel="Notificações"
             onPress={() => setNotifOpen(true)}
           >
-            <Ionicons name="notifications-outline" size={19} color={colors.textPrimary} />
-            {newTableNotifications.length > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>
-                  {newTableNotifications.length > 9 ? '9+' : newTableNotifications.length}
-                </Text>
-              </View>
-            )}
+            <Ionicons name="notifications-outline" size={19} color={HERO.seaTeal900} />
+            {newTableNotifications.length > 0 && <View style={styles.notifDot} />}
           </AnimatedPressable>
           <AnimatedPressable style={styles.iconButton} accessibilityLabel="Sair" onPress={logout}>
-            <Ionicons name="log-out-outline" size={19} color={colors.textPrimary} />
+            <Ionicons name="log-out-outline" size={18} color={HERO.seaTeal900} />
           </AnimatedPressable>
         </View>
       </View>
 
       <View style={styles.heroCard}>
         <LinearGradient
-          colors={[colors.emerald, colors.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={[HERO.gradientStart, HERO.gradientEnd]}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
-        <View style={styles.heroGlow} pointerEvents="none" />
+        <View style={styles.heroAmbientGlow} pointerEvents="none" />
+        <View style={styles.heroSunWrap} pointerEvents="none">
+          <LinearGradient
+            colors={[HERO.sunLight, HERO.sunMid, HERO.sun500]}
+            start={{ x: 0.3, y: 0 }}
+            end={{ x: 0.7, y: 1 }}
+            style={styles.heroSun}
+          />
+        </View>
 
-        <View style={styles.heroInner}>
-          <View style={styles.heroTopRow}>
-            <Text style={styles.heroLabel}>CAIXA DO DIA</Text>
+        <View style={styles.heroTopContent}>
+          <View style={styles.caixaTopRow}>
+            <Text style={styles.caixaLabel}>CAIXA DO DIA</Text>
             <View style={styles.statusPill}>
-              <PulseDot color={colors.white} size={6} />
+              <PulseDot color={HERO.liveDot} size={7} />
               <Text style={styles.statusPillText}>Aberto</Text>
             </View>
           </View>
 
-          <Text style={styles.heroSubLabel}>Faturamento de hoje</Text>
-          <View style={styles.heroAmountRow}>
-            <Text style={styles.heroAmountMain}>{revenueMain}</Text>
-            <Text style={styles.heroAmountCents}>,{revenueCents}</Text>
+          <Text style={styles.revenueCap}>Faturamento de hoje</Text>
+          <View style={styles.revenueRow}>
+            <Text style={styles.revenueMain}>{revenueMain}</Text>
+            <Text style={styles.revenueCents}>,{revenueCents}</Text>
           </View>
           {trendPct !== null && (
-            <View style={styles.trendRow}>
-              <Ionicons
-                name={trendPct >= 0 ? 'arrow-up' : 'arrow-down'}
-                size={12}
-                color={colors.white}
-              />
-              <Text style={styles.trendText}>
-                {Math.abs(trendPct).toFixed(0)}% em relação a ontem
+            <View style={styles.revenueSubRow}>
+              <Text style={styles.trendBold}>
+                {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct).toFixed(0)}%
               </Text>
+              <Text style={styles.trendRest}> em relação a ontem</Text>
             </View>
           )}
+        </View>
 
-          <View style={styles.waveWrap}>
-            <WaveDivider />
-          </View>
+        <View style={trendPct !== null ? styles.waveWrapWithTrend : styles.waveWrap}>
+          <WaveDivider />
+        </View>
 
-          <View style={styles.heroStatsRow}>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>{openTables.length}</Text>
-              <Text style={styles.heroStatLabel}>em atendimento</Text>
+        <View style={styles.seaStrip}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCol}>
+              <Text style={styles.statValue}>{openTables.length}</Text>
+              <Text style={styles.statLabel}>em atendimento</Text>
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>{closedTables.length}</Text>
-              <Text style={styles.heroStatLabel}>fechadas hoje</Text>
+            <View style={styles.statDivider} />
+            <View style={styles.statCol}>
+              <Text style={styles.statValue}>{closedTables.length}</Text>
+              <Text style={styles.statLabel}>fechadas hoje</Text>
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>
-                {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            <View style={styles.statDivider} />
+            <View style={styles.statCol}>
+              <Text style={styles.statValue}>
+                R$ {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
-              <Text style={styles.heroStatLabel}>ticket médio</Text>
+              <Text style={styles.statLabel}>ticket médio</Text>
             </View>
           </View>
         </View>
 
         <AnimatedPressable style={styles.heroFooter} onPress={() => navigation.navigate('Reports')}>
-          <Text style={styles.heroFooterText}>Ver faturamento completo em Relatórios</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.white} />
+          <Text style={styles.heroFooterText} numberOfLines={1}>
+            Ver faturamento completo em Relatórios
+          </Text>
+          <Ionicons name="chevron-forward" size={15} color="#EAFBF5" />
         </AnimatedPressable>
       </View>
 
-      <View style={[styles.sectionHeaderRow, { marginTop: spacing.lg }]}>
-        <Text style={styles.sectionTitleBold}>Mais vendidos hoje</Text>
-        <Text style={styles.sectionCount}>Top {TOP_ITEMS_COUNT}</Text>
-      </View>
-
-      {topItems.length === 0 ? (
-        <View style={styles.topItemsEmpty}>
-          <Text style={styles.emptyInlineText}>Nenhum item vendido ainda hoje.</Text>
+      <View style={styles.section}>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>Mais vendidos hoje</Text>
+          <Text style={styles.sectionMeta}>Top {TOP_ITEMS_COUNT}</Text>
         </View>
-      ) : (
-        <View style={styles.topItemsCard}>
-          {topItems.map((item, index) => {
-            const pct = Math.max(4, Math.round((item.quantity / topMax) * 100));
-            const rank = RANK_STYLE[index] ?? RANK_STYLE[RANK_STYLE.length - 1];
-            return (
-              <View key={item.menuItemId} style={styles.topItemRow}>
-                <View style={[styles.rankCircle, { backgroundColor: rank.bg }]}>
-                  <Text style={[styles.rankNumber, { color: rank.fg }]}>{index + 1}</Text>
-                </View>
-                <View style={styles.topItemBody}>
-                  <Text style={styles.topItemName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.topItemBarTrack}>
-                    <View style={[styles.topItemBarFill, { width: `${pct}%` }]} />
-                  </View>
-                </View>
-                <Text style={styles.topItemQty}>{item.quantity}×</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
 
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitleBold}>Mesas abertas</Text>
-        <View style={styles.sectionHeaderRight}>
-          <Text style={styles.sectionCount}>
-            {openTables.length} {openTables.length === 1 ? 'ativa' : 'ativas'}
-          </Text>
-          <AnimatedPressable
-            style={styles.addTableBtn}
-            accessibilityLabel="Abrir nova mesa"
-            onPress={() => navigation.navigate('OpenTable')}
-          >
-            <Ionicons name="add" size={18} color={colors.textInverse} />
-          </AnimatedPressable>
-        </View>
-      </View>
-
-      <View style={styles.tablesCard}>
-        {openTables.length === 0 ? (
-          <View style={styles.tablesEmptyRow}>
-            <View style={styles.tablesEmptyIconWrap}>
-              <Ionicons name="umbrella-outline" size={22} color={colors.primary} />
+        {topItems.length === 0 ? (
+          <View style={styles.card}>
+            <View style={styles.emptyInline}>
+              <Text style={styles.emptyInlineText}>Nenhum item vendido ainda hoje.</Text>
             </View>
-            <Text style={styles.tablesEmptyText}>Nenhuma mesa aberta no momento.</Text>
           </View>
         ) : (
-          <View style={styles.tablesGrid}>
-            {openTables.map((table) => (
-              <TableCard
-                key={table.id}
-                table={table}
-                style={{ width: tableCardWidth }}
-                onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
-              />
-            ))}
+          <View style={[styles.card, styles.sellersCard]}>
+            {topItems.map((item, index) => {
+              const pct = Math.max(4, Math.round((item.quantity / topMax) * 100));
+              const rank = RANK_STYLE[index] ?? RANK_STYLE[RANK_STYLE.length - 1];
+              return (
+                <View key={item.menuItemId} style={styles.sellerRow}>
+                  <View style={[styles.rank, { backgroundColor: rank.bg }]}>
+                    <Text style={[styles.rankNumber, { color: rank.fg }]}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.sellerBody}>
+                    <Text style={styles.sellerName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <LinearGradient
+                        colors={[HERO.sun500, HERO.sun600]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.barFill, { width: `${pct}%` }]}
+                      />
+                    </View>
+                  </View>
+                  <Text style={styles.sellerQty}>
+                    {item.quantity}
+                    <Text style={styles.sellerQtyX}>×</Text>
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         )}
       </View>
 
+      <View style={styles.section}>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionTitle}>Mesas abertas</Text>
+          <Text style={styles.sectionMeta}>
+            {openTables.length} {openTables.length === 1 ? 'ativa' : 'ativas'}
+          </Text>
+        </View>
+
+        <View style={styles.card}>
+          {openTables.length === 0 ? (
+            <View style={styles.empty}>
+              <LinearGradient
+                colors={['#EAF6F3', '#DCEEEA']}
+                start={{ x: 0.2, y: 0 }}
+                end={{ x: 0.8, y: 1 }}
+                style={styles.emptyIll}
+              >
+                <BeachUmbrellaIcon size={28} color={HERO.seaTeal500} />
+              </LinearGradient>
+              <Text style={styles.emptyTitle}>Nenhuma mesa aberta</Text>
+              <Text style={styles.emptyText}>
+                Abra uma mesa para lançar pedidos e acompanhar o atendimento em tempo real.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.tablesGrid}>
+              {openTables.map((table) => (
+                <TableCard
+                  key={table.id}
+                  table={table}
+                  style={{ width: tableCardWidth }}
+                  onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
+
       {isAdmin && (
-        <AnimatedPressable style={styles.endDayBar} onPress={handleEndDay}>
-          <View style={styles.endDayIconWrap}>
-            <Ionicons name="lock-closed-outline" size={16} color={colors.danger} />
+        <AnimatedPressable style={styles.closeDay} onPress={handleEndDay}>
+          <View style={styles.closeIcon}>
+            <Ionicons name="lock-closed-outline" size={17} color={HERO.sun600} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.endDayTitle}>Encerrar o dia</Text>
-            <Text style={styles.endDaySub}>Fecha o caixa e zera o painel para amanhã</Text>
+            <Text style={styles.closeTitle}>Encerrar o dia</Text>
+            <Text style={styles.closeSub}>Fecha o caixa e zera o painel para amanhã</Text>
           </View>
-          <View style={styles.endDayChevronWrap}>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </View>
+          <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
         </AnimatedPressable>
       )}
 
       </ScrollView>
+
+      <AnimatedPressable
+        style={styles.fabWrap}
+        accessibilityLabel="Abrir nova mesa"
+        onPress={() => navigation.navigate('OpenTable')}
+      >
+        <LinearGradient
+          colors={['#FFAF5C', HERO.sun600]}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={styles.fab}
+        >
+          <Ionicons name="add" size={26} color={colors.white} />
+        </LinearGradient>
+      </AnimatedPressable>
 
       <ConfirmModal
         visible={endDayDialog === 'blocked-open'}
@@ -358,7 +410,7 @@ export function DashboardScreen({ navigation }: Props) {
       <ConfirmModal
         visible={endDayDialog === 'confirm'}
         icon="lock-closed-outline"
-        iconColor={colors.sand}
+        iconColor={HERO.sun600}
         title="Encerrar o dia"
         confirmLabel="Encerrar dia"
         destructive
@@ -405,7 +457,7 @@ export function DashboardScreen({ navigation }: Props) {
                   }}
                 >
                   <View style={styles.notifRowIcon}>
-                    <Ionicons name="restaurant-outline" size={16} color={colors.emerald} />
+                    <Ionicons name="restaurant-outline" size={16} color={HERO.seaTeal700} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.notifRowTitle}>Mesa {table.label} aberta</Text>
@@ -439,46 +491,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xxxl,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  headerLeft: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    flexShrink: 1,
+    paddingTop: 6,
+    paddingBottom: spacing.md,
   },
-  headerTextWrap: {
-    flexShrink: 1,
-  },
-  greeting: {
-    ...typography.h1,
-    fontSize: 21,
-    color: colors.textPrimary,
-  },
-  date: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: 1,
+  menuButtonWrap: {
+    borderRadius: 15,
+    shadowColor: HERO.seaTeal700,
+    shadowOpacity: 0.32,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   menuButton: {
     width: 44,
     height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  greeting: {
+    fontFamily: serifFontFamily.semiBold,
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  date: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 3,
+    textTransform: 'capitalize',
   },
   headerActions: {
     flexDirection: 'row',
@@ -487,33 +539,23 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: radius.md,
+    borderRadius: 13,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notifBadge: {
+  notifDot: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    paddingHorizontal: spacing.xxs,
-    backgroundColor: colors.danger,
+    top: 8,
+    right: 9,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: HERO.sun600,
     borderWidth: 1.5,
-    borderColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notifBadgeText: {
-    ...typography.caption,
-    fontSize: 9,
-    fontWeight: '700',
-    lineHeight: 11,
-    color: colors.textInverse,
+    borderColor: colors.surface,
   },
   notifBackdrop: {
     flex: 1,
@@ -547,7 +589,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderLight,
   },
   notifTitle: {
-    ...typography.h3,
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 16,
     color: colors.textPrimary,
     flex: 1,
   },
@@ -556,14 +599,14 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     paddingHorizontal: spacing.xxs,
-    backgroundColor: colors.emeraldMuted,
+    backgroundColor: '#E4F1EF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   notifHeaderBadgeText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.emerald,
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 12,
+    color: HERO.seaTeal700,
   },
   notifEmpty: {
     flexDirection: 'row',
@@ -572,7 +615,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   notifEmptyText: {
-    ...typography.bodySm,
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 13,
     color: colors.textMuted,
   },
   notifRow: {
@@ -588,294 +632,355 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.emeraldMuted,
+    backgroundColor: '#E4F1EF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   notifRowTitle: {
-    ...typography.bodySm,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 13,
     color: colors.textPrimary,
   },
   notifRowSub: {
-    ...typography.caption,
+    fontFamily: nunitoFontFamily.medium,
+    fontSize: 12,
     color: colors.textMuted,
     marginTop: 1,
   },
   heroCard: {
-    borderRadius: radius.xxl,
+    position: 'relative',
+    borderRadius: 26,
     overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: HERO.seaTeal900,
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  heroAmbientGlow: {
+    position: 'absolute',
+    top: -50,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: HERO.ambientGlow,
+  },
+  heroSunWrap: {
+    position: 'absolute',
+    top: 16,
+    right: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    shadowColor: HERO.sunMid,
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
     elevation: 6,
   },
-  heroGlow: {
-    position: 'absolute',
-    top: -55,
-    right: -35,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(226, 96, 61, 0.65)',
+  heroSun: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
-  heroInner: {
-    padding: spacing.lg,
+  heroTopContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
-  heroTopRow: {
+  caixaTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  heroLabel: {
-    ...typography.label,
-    fontFamily: monoFontFamily,
-    letterSpacing: 1.5,
-    color: 'rgba(255,255,255,0.85)',
+  caixaLabel: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 10.5,
+    letterSpacing: 1.7,
+    color: 'rgba(255,255,255,0.7)',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
   },
   statusPillText: {
-    ...typography.caption,
-    fontWeight: '700',
-    color: colors.white,
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 12,
+    color: '#EAFBF5',
   },
-  heroSubLabel: {
-    ...typography.bodySm,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: spacing.md,
+  revenueCap: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.78)',
   },
-  heroAmountRow: {
+  revenueRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginTop: 2,
+    marginTop: 4,
   },
-  heroAmountMain: {
-    ...typography.display,
+  revenueMain: {
+    fontFamily: serifFontFamily.semiBold,
     fontSize: 36,
     color: colors.white,
+    letterSpacing: -0.4,
   },
-  heroAmountCents: {
-    ...typography.h2,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: 3,
+  revenueCents: {
+    fontFamily: serifFontFamily.semiBold,
+    fontSize: 21,
+    color: 'rgba(255,255,255,0.72)',
+    marginBottom: 2,
   },
-  trendRow: {
+  revenueSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: spacing.xxs,
-  },
-  trendText: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  waveWrap: {
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  heroStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heroStat: {
-    flex: 1,
-  },
-  heroStatValue: {
-    ...typography.h2,
-    fontFamily: monoFontFamily,
-    color: colors.white,
-  },
-  heroStatLabel: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
     marginTop: 2,
   },
-  heroStatDivider: {
+  trendBold: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 12,
+    color: HERO.trendGood,
+  },
+  trendRest: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  waveWrap: {
+    marginTop: 16,
+  },
+  waveWrapWithTrend: {
+    marginTop: 10,
+  },
+  seaStrip: {
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    paddingTop: 2,
+    paddingHorizontal: 12,
+    paddingBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+  },
+  statCol: {
+    flex: 1,
+    paddingHorizontal: 10,
+  },
+  statValue: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 19,
+    color: colors.white,
+  },
+  statLabel: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 10.5,
+    color: 'rgba(255,255,255,0.68)',
+    marginTop: 5,
+    lineHeight: 13,
+  },
+  statDivider: {
     width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginHorizontal: spacing.sm,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   heroFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.16)',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: 13,
+    marginTop: 12,
+    gap: spacing.xs,
   },
   heroFooterText: {
-    ...typography.bodySm,
-    fontWeight: '700',
-    color: colors.white,
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 13,
+    color: '#EAFBF5',
+    flex: 1,
   },
-  endDayBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.dangerMuted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(225, 67, 92, 0.35)',
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+  section: {
+    marginTop: 22,
   },
-  endDayIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.md,
-    backgroundColor: colors.dangerMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  endDayTitle: {
-    ...typography.h3,
-    color: colors.danger,
-  },
-  endDaySub: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  endDayChevronWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionHeaderRow: {
+  sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-    marginTop: spacing.lg,
+    marginBottom: 11,
+    paddingHorizontal: 2,
   },
-  sectionHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  sectionTitleBold: {
-    ...typography.h3,
+  sectionTitle: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 15,
     color: colors.textPrimary,
   },
-  sectionCount: {
-    ...typography.caption,
+  sectionMeta: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 12,
     color: colors.textMuted,
   },
-  addTableBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tablesCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  tablesEmptyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  tablesEmptyIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tablesEmptyText: {
-    ...typography.bodySm,
-    color: colors.textMuted,
-    flex: 1,
-  },
-  topItemsCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  topItemsEmpty: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
+  card: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    borderRadius: 22,
+    shadowColor: colors.textPrimary,
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  sellersCard: {
+    padding: 6,
+  },
+  emptyInline: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   emptyInlineText: {
-    ...typography.bodySm,
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 13,
     color: colors.textMuted,
     textAlign: 'center',
   },
-  topItemRow: {
+  sellerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 15,
   },
-  rankCircle: {
+  rank: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankNumber: {
-    ...typography.caption,
-    fontWeight: '800',
+    fontFamily: serifFontFamily.bold,
+    fontSize: 13,
   },
-  topItemBody: {
+  sellerBody: {
     flex: 1,
   },
-  topItemName: {
-    ...typography.bodySm,
-    fontWeight: '700',
+  sellerName: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  barTrack: {
+    height: 6,
+    borderRadius: 99,
+    backgroundColor: colors.surfaceHighlight,
+    marginTop: 7,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 99,
+  },
+  sellerQty: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  sellerQtyX: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  empty: {
+    paddingVertical: 30,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  emptyIll: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 15.5,
     color: colors.textPrimary,
     marginBottom: 5,
   },
-  topItemBarTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.coralMuted,
-    overflow: 'hidden',
-  },
-  topItemBarFill: {
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: colors.coral,
-  },
-  topItemQty: {
-    ...typography.bodySm,
-    fontFamily: monoFontFamily,
+  emptyText: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 12.5,
     color: colors.textSecondary,
+    lineHeight: 18,
+    textAlign: 'center',
+    maxWidth: 224,
   },
   tablesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    padding: spacing.md,
+  },
+  closeDay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    padding: spacing.md,
+    marginTop: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    shadowColor: colors.textPrimary,
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  closeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FBEADF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeTitle: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  closeSub: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 11.5,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  fabWrap: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg + 2,
+    shadowColor: HERO.sun600,
+    shadowOpacity: 0.44,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   endDayRevenueBox: {
     width: '100%',
@@ -888,20 +993,20 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   endDayRevenueLabel: {
-    ...typography.caption,
-    fontFamily: monoFontFamily,
-    letterSpacing: 1.5,
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 1.2,
     color: colors.textSecondary,
   },
   endDayRevenueValue: {
-    ...typography.display,
-    fontFamily: monoFontFamily,
-    fontSize: 30,
+    fontFamily: serifFontFamily.semiBold,
+    fontSize: 28,
     color: colors.emerald,
     marginTop: spacing.xxs,
   },
   endDayConfirmSub: {
-    ...typography.caption,
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 12,
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing.sm,
