@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +16,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
-import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
 
 const AWNING_COLORS = [
   colors.danger,
@@ -26,14 +27,21 @@ const AWNING_COLORS = [
   colors.surface,
 ];
 
+type Mode = 'login' | 'signup';
+
 export function LoginScreen() {
   const login = useAuthStore((s) => s.login);
+  const signUp = useAuthStore((s) => s.signUp);
+
+  const [mode, setMode] = useState<Mode>('login');
+  const [orgName, setOrgName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<'user' | 'pass' | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const { contentStyle } = useResponsiveContent(440);
 
   const enter = useRef(new Animated.Value(0)).current;
@@ -57,6 +65,11 @@ export function LoginScreen() {
     ]).start();
   };
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError('');
+  };
+
   const handleLogin = async () => {
     setError('');
     if (!email.trim() || !password.trim()) {
@@ -72,6 +85,34 @@ export function LoginScreen() {
       runShake();
     }
   };
+
+  const handleSignUp = async () => {
+    setError('');
+    if (!orgName.trim() || !displayName.trim() || !email.trim() || !password.trim()) {
+      setError('Preencha todos os campos.');
+      runShake();
+      return;
+    }
+    if (password.length < 6) {
+      setError('A senha precisa ter ao menos 6 caracteres.');
+      runShake();
+      return;
+    }
+    setLoading(true);
+    const { ok, error: signUpError } = await signUp({
+      orgName,
+      displayName,
+      email,
+      password,
+    });
+    setLoading(false);
+    if (!ok) {
+      setError(signUpError ?? 'Não foi possível criar a conta.');
+      runShake();
+    }
+  };
+
+  const handleSubmit = mode === 'login' ? handleLogin : handleSignUp;
 
   const brandStyle = {
     opacity: enter,
@@ -99,7 +140,11 @@ export function LoginScreen() {
           ))}
         </View>
 
-        <View style={[styles.container, contentStyle]}>
+        <ScrollView
+          contentContainerStyle={[styles.container, contentStyle]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <Animated.View style={[styles.brandWrap, brandStyle]}>
             <Text style={styles.brandTop}>QUIOSQUE</Text>
             <View style={styles.brandBottomRow}>
@@ -112,14 +157,89 @@ export function LoginScreen() {
 
           <Animated.View style={cardStyle}>
             <View style={styles.card}>
-              <Text style={styles.cardLabel}>ACESSO AO CAIXA</Text>
+              <View style={styles.modeSwitch}>
+                <AnimatedPressable
+                  style={[styles.modeTab, mode === 'login' && styles.modeTabActive]}
+                  onPress={() => switchMode('login')}
+                >
+                  <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
+                    Entrar
+                  </Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
+                  onPress={() => switchMode('signup')}
+                >
+                  <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
+                    Cadastrar
+                  </Text>
+                </AnimatedPressable>
+              </View>
 
-              <Text style={styles.fieldLabel}>E-MAIL</Text>
+              <Text style={styles.cardLabel}>
+                {mode === 'login' ? 'ACESSO AO CAIXA' : 'CRIAR CONTA DO QUIOSQUE'}
+              </Text>
+
+              {mode === 'signup' && (
+                <>
+                  <Text style={styles.fieldLabel}>NOME DO QUIOSQUE</Text>
+                  <View
+                    style={[styles.inputWrap, focusedField === 'org' && styles.inputWrapFocused]}
+                  >
+                    <Ionicons
+                      name="storefront-outline"
+                      size={17}
+                      color={focusedField === 'org' ? colors.sand : colors.textMuted}
+                    />
+                    <TextInput
+                      value={orgName}
+                      onChangeText={(v) => {
+                        setOrgName(v);
+                        if (error) setError('');
+                      }}
+                      onFocus={() => setFocusedField('org')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Quiosque do Rodrigo"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.input}
+                      returnKeyType="next"
+                    />
+                  </View>
+
+                  <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>SEU NOME</Text>
+                  <View
+                    style={[styles.inputWrap, focusedField === 'name' && styles.inputWrapFocused]}
+                  >
+                    <Ionicons
+                      name="person-outline"
+                      size={17}
+                      color={focusedField === 'name' ? colors.sand : colors.textMuted}
+                    />
+                    <TextInput
+                      value={displayName}
+                      onChangeText={(v) => {
+                        setDisplayName(v);
+                        if (error) setError('');
+                      }}
+                      onFocus={() => setFocusedField('name')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Seu nome completo"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.input}
+                      returnKeyType="next"
+                    />
+                  </View>
+                </>
+              )}
+
+              <Text style={[styles.fieldLabel, mode === 'signup' && { marginTop: spacing.md }]}>
+                E-MAIL
+              </Text>
               <View
                 style={[styles.inputWrap, focusedField === 'user' && styles.inputWrapFocused]}
               >
                 <Ionicons
-                  name="person-outline"
+                  name="mail-outline"
                   size={17}
                   color={focusedField === 'user' ? colors.sand : colors.textMuted}
                 />
@@ -158,13 +278,13 @@ export function LoginScreen() {
                   }}
                   onFocus={() => setFocusedField('pass')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="••••••••"
+                  placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.input}
-                  onSubmitEditing={handleLogin}
+                  onSubmitEditing={handleSubmit}
                   returnKeyType="go"
                 />
                 <Pressable
@@ -187,8 +307,16 @@ export function LoginScreen() {
                 </View>
               ) : null}
 
-              <AnimatedPressable style={styles.enterBtn} onPress={handleLogin} disabled={loading}>
-                <Text style={styles.enterBtnText}>{loading ? 'Entrando…' : 'Entrar'}</Text>
+              <AnimatedPressable style={styles.enterBtn} onPress={handleSubmit} disabled={loading}>
+                <Text style={styles.enterBtnText}>
+                  {loading
+                    ? mode === 'login'
+                      ? 'Entrando…'
+                      : 'Criando conta…'
+                    : mode === 'login'
+                      ? 'Entrar'
+                      : 'Criar conta'}
+                </Text>
                 {!loading ? (
                   <Ionicons name="arrow-forward" size={19} color={colors.textInverse} />
                 ) : null}
@@ -196,7 +324,7 @@ export function LoginScreen() {
             </View>
             <ReceiptTornEdge />
           </Animated.View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -212,9 +340,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
   },
   brandWrap: {
     alignItems: 'center',
@@ -257,6 +386,35 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: spacing.lg,
+  },
+  modeSwitch: {
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceHighlight,
+    borderRadius: radius.full,
+    padding: 4,
+    marginBottom: spacing.lg,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
+  },
+  modeTabActive: {
+    backgroundColor: colors.sand,
+    shadowColor: colors.sand,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  modeTabText: {
+    ...typography.bodySm,
+    color: colors.textSecondary,
+  },
+  modeTabTextActive: {
+    color: colors.textInverse,
+    fontFamily: nunitoFontFamily.bold,
   },
   cardLabel: {
     ...typography.caption,

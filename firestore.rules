@@ -21,20 +21,31 @@ service cloud.firestore {
       return isOrgMember(orgId) && pointer().role == 'admin';
     }
 
-    // Ponteiro uid -> org/role. O próprio usuário pode ler o seu; só um admin
-    // da organização pode criar o ponteiro de um novo usuário (é assim que o
-    // cadastro de funcionários funciona — o admin cria a conta no Auth pelo
-    // app e grava esse ponteiro na sequência). Nunca é alterado depois.
+    // Ponteiro uid -> org/role. O próprio usuário pode ler o seu. Um admin
+    // pode criar o ponteiro de um novo funcionário; ou o próprio usuário
+    // pode criar o SEU (role admin), mas só apontando para uma organização
+    // que ele mesmo acabou de criar (dono == ele) — é o que faz o
+    // autocadastro funcionar sem permitir "sequestrar" uma org existente.
+    // Nunca é alterado depois.
     match /users/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create: if isOrgAdmin(request.resource.data.orgId)
-        && request.resource.data.role in ['admin', 'staff'];
+      allow create: if (isOrgAdmin(request.resource.data.orgId)
+          && request.resource.data.role in ['admin', 'staff'])
+        || (isSignedIn() && request.auth.uid == uid
+            && request.resource.data.role == 'admin'
+            && get(/databases/$(database)/documents/organizations/$(request.resource.data.orgId)).data.ownerId == request.auth.uid);
       allow update, delete: if false;
     }
 
     match /organizations/{orgId} {
       allow read: if isOrgMember(orgId);
-      allow write: if false; // criação/edição da org é feita fora do app (bootstrap manual)
+      // Autocadastro: qualquer usuário autenticado pode criar sua PRÓPRIA
+      // organização nova (torna-se o dono/admin dela). "create" só funciona
+      // se o documento ainda não existir, então não dá pra reescrever uma
+      // org já criada por outra pessoa. Edição/exclusão continuam de fora
+      // do app.
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // Perfis completos dos usuários da organização. Qualquer membro pode ler
@@ -46,12 +57,19 @@ service cloud.firestore {
       allow list: if isOrgAdmin(orgId);
       // Só um admin cadastra novo usuário, e só com os campos esperados
       // (evita que o novo perfil já nasça "active: false" ou com papel
-      // inválido, por exemplo).
-      allow create: if isOrgAdmin(orgId)
-        && request.resource.data.uid == uid
-        && request.resource.data.orgId == orgId
-        && request.resource.data.role in ['admin', 'staff']
-        && request.resource.data.active == true;
+      // inválido, por exemplo) — ou o próprio usuário no autocadastro,
+      // criando o perfil de admin da organização que ele mesmo criou.
+      allow create: if (isOrgAdmin(orgId)
+          && request.resource.data.uid == uid
+          && request.resource.data.orgId == orgId
+          && request.resource.data.role in ['admin', 'staff']
+          && request.resource.data.active == true)
+        || (isSignedIn() && request.auth.uid == uid
+            && request.resource.data.uid == uid
+            && request.resource.data.orgId == orgId
+            && request.resource.data.role == 'admin'
+            && request.resource.data.active == true
+            && get(/databases/$(database)/documents/organizations/$(orgId)).data.ownerId == request.auth.uid);
       // Admin pode atualizar campos como "active", mas não pode alterar "role"
       // por aqui (evita auto-promoção); troca de papel fica fora do app por ora.
       // Qualquer usuário também pode gravar só o próprio token de notificação

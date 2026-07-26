@@ -1,13 +1,15 @@
 import {
+  createUserWithEmailAndPassword,
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
   updatePassword,
+  updateProfile,
   type Unsubscribe,
 } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
 import { create } from 'zustand';
 import { auth, db } from '../config/firebase';
 import { usePosStore } from './usePosStore';
@@ -20,6 +22,12 @@ interface AuthState {
   status: AuthStatus;
   user: UserProfile | null;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signUp: (input: {
+    orgName: string;
+    displayName: string;
+    email: string;
+    password: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   changePassword: (
     currentPassword: string,
@@ -36,6 +44,23 @@ interface UserPointer {
 async function fetchPointer(uid: string): Promise<UserPointer | null> {
   const snap = await getDoc(doc(db, 'users', uid));
   return snap.exists() ? (snap.data() as UserPointer) : null;
+}
+
+// Logo após o autocadastro, o onAuthStateChanged deste mesmo listener dispara
+// antes de as escritas do ponteiro/perfil terminarem (a sessão já existe no
+// Auth assim que a conta é criada, mas o Firestore ainda não). Sem repetir a
+// busca, esse primeiro pointer nulo derrubava a sessão recém-criada.
+async function fetchPointerWithRetry(
+  uid: string,
+  attempts = 5,
+  delayMs = 400
+): Promise<UserPointer | null> {
+  for (let i = 0; i < attempts; i++) {
+    const pointer = await fetchPointer(uid);
+    if (pointer) return pointer;
+    if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
 }
 
 async function fetchOrgProfile(orgId: string, uid: string): Promise<UserProfile | null> {
@@ -56,6 +81,21 @@ function friendlyAuthError(code: string): string {
       return 'Sem conexão com a internet.';
     default:
       return 'Não foi possível entrar. Tente novamente.';
+  }
+}
+
+function friendlySignUpError(code: string): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Já existe uma conta com esse e-mail.';
+    case 'auth/invalid-email':
+      return 'E-mail inválido.';
+    case 'auth/weak-password':
+      return 'A senha precisa ter ao menos 6 caracteres.';
+    case 'auth/network-request-failed':
+      return 'Sem conexão com a internet.';
+    default:
+      return 'Não foi possível criar a conta. Tente novamente.';
   }
 }
 
@@ -140,6 +180,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // Autocadastro: cria a conta no Auth, uma organização nova e o perfil de
+  // admin dela, tudo pelo próprio app (sem precisar de outro admin ou do
+  // script de bootstrap manual). A escrita da org precisa terminar ANTES do
+  // ponteiro/perfil, porque a regra de segurança do ponteiro confirma que a
+  // org referenciada já existe e tem esse uid como dono.
+  signUp: async ({ orgName, displayName, email, password }) => {
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const uid = credential.user.uid;
+      await updateProfile(credential.user, { displayName: displayName.trim() });
+
+      const nowIso = new Date().toISOString();
+      const orgRef = doc(collection(db, 'organizations'));
+      await setDoc(orgRef, { name: orgName.trim(), ownerId: uid, createdAt: nowIso });
+
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', uid), { orgId: orgRef.id, role: 'admin' });
+      batch.set(doc(db, 'organizations', orgRef.id, 'users', uid), {
+        uid,
+        orgId: orgRef.id,
+        email: email.trim(),
+        displayName: displayName.trim(),
+        role: 'admin',
+        active: true,
+        createdAt: nowIso,
+        createdBy: uid,
+      });
+      await batch.commit();
+
+      await logAuditEvent({
+        orgId: orgRef.id,
+        userId: uid,
+        userName: displayName.trim(),
+        type: 'login',
+      });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: friendlySignUpError(err?.code ?? '') };
+    }
+  },
+
   logout: async () => {
     const { user } = get();
     if (user) {
@@ -192,7 +273,7 @@ export function initAuthListener(): Unsubscribe {
       useAuthStore.setState({ status: 'unauthenticated', user: null });
       return;
     }
-    const pointer = await fetchPointer(firebaseUser.uid);
+    const pointer = await fetchPointerWithRetry(firebaseUser.uid);
     if (!pointer) {
       await signOut(auth);
       useAuthStore.setState({ status: 'unauthenticated', user: null });
