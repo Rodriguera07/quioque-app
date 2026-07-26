@@ -3,11 +3,12 @@ import {
   createUserWithEmailAndPassword,
   inMemoryPersistence,
   initializeAuth,
+  sendPasswordResetEmail,
   signOut,
   updateProfile,
 } from 'firebase/auth';
 import { doc, writeBatch } from 'firebase/firestore';
-import { db, firebaseConfig } from '../config/firebase';
+import { auth, db, firebaseConfig } from '../config/firebase';
 import { Role } from '../types';
 
 interface CreateOrgUserInput {
@@ -67,6 +68,32 @@ export async function createOrgUser({
   } finally {
     await signOut(secondaryAuth).catch(() => {});
     await deleteApp(secondaryApp).catch(() => {});
+  }
+}
+
+// O SDK client-side não permite que o admin defina a senha de outra conta já
+// existente diretamente (isso exigiria o Admin SDK numa Cloud Function, ou
+// seja, o plano pago Blaze). A alternativa sem custo é enviar o e-mail de
+// redefinição do próprio Firebase Auth: o usuário recebe um link e escolhe a
+// nova senha por conta própria.
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+  } catch (err: any) {
+    throw new Error(friendlyPasswordResetError(err?.code ?? ''));
+  }
+}
+
+function friendlyPasswordResetError(code: string): string {
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'E-mail inválido.';
+    case 'auth/user-not-found':
+      return 'Não existe conta com esse e-mail.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas. Aguarde um instante e tente novamente.';
+    default:
+      return 'Não foi possível enviar o e-mail de redefinição. Tente novamente.';
   }
 }
 

@@ -14,6 +14,7 @@ export type RootStackParamList = {
   ClosedTableDetail: { sale: ClosedSale };
   UserManagement: undefined;
   AuditLog: undefined;
+  ChangePassword: undefined;
 };
 
 export type DrawerParamList = {

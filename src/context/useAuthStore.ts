@@ -1,7 +1,10 @@
 import {
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   type Unsubscribe,
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -18,6 +21,10 @@ interface AuthState {
   user: UserProfile | null;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 // Ponteiro global uid -> { orgId, role } em `users/{uid}`.
@@ -49,6 +56,24 @@ function friendlyAuthError(code: string): string {
       return 'Sem conexão com a internet.';
     default:
       return 'Não foi possível entrar. Tente novamente.';
+  }
+}
+
+function friendlyChangePasswordError(code: string): string {
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+      return 'Senha atual incorreta.';
+    case 'auth/weak-password':
+      return 'A nova senha precisa ter ao menos 6 caracteres.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas. Aguarde um instante e tente novamente.';
+    case 'auth/requires-recent-login':
+      return 'Por segurança, saia e entre novamente antes de trocar a senha.';
+    case 'auth/network-request-failed':
+      return 'Sem conexão com a internet.';
+    default:
+      return 'Não foi possível trocar a senha. Tente novamente.';
   }
 }
 
@@ -129,6 +154,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     profileUnsubscribe = null;
     usePosStore.getState().teardownOrgSync();
     await signOut(auth);
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const { user } = get();
+    const firebaseUser = auth.currentUser;
+    if (!user || !firebaseUser) {
+      return { ok: false, error: 'Sessão inválida. Entre novamente.' };
+    }
+    try {
+      // updatePassword exige reautenticação recente; sem isso o Firebase
+      // rejeita a troca com "auth/requires-recent-login" mesmo com sessão
+      // ativa, então reautenticamos com a senha atual informada antes.
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, newPassword);
+      await logAuditEvent({
+        orgId: user.orgId,
+        userId: user.uid,
+        userName: user.displayName,
+        type: 'password_changed',
+      });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: friendlyChangePasswordError(err?.code ?? '') };
+    }
   },
 }));
 

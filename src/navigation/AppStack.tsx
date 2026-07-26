@@ -3,6 +3,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { AddItemsScreen } from '../screens/AddItemsScreen';
 import { AuditLogScreen } from '../screens/AuditLogScreen';
+import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
 import { CloseTableScreen } from '../screens/CloseTableScreen';
 import { ClosedTableDetailScreen } from '../screens/ClosedTableDetailScreen';
 import { ClosedTablesHistoryScreen } from '../screens/ClosedTablesHistoryScreen';
@@ -57,6 +58,7 @@ export function AppStack() {
       <Stack.Screen name="ClosedTableDetail" component={ClosedTableDetailScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
       <Stack.Screen name="AuditLog" component={AuditLogScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
     </Stack.Navigator>
   );
 }

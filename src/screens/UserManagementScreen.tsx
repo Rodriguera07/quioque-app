@@ -3,6 +3,7 @@ import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -20,11 +21,12 @@ import { EmptyState } from '../components/EmptyState';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { createOrgUser } from '../services/adminApi';
+import { createOrgUser, sendPasswordReset } from '../services/adminApi';
+import { logAuditEvent } from '../services/auditLog';
 import { setOrgUserActive, subscribeOrgUsers } from '../services/firestoreOrg';
 import { colors, radius, spacing, typography } from '../theme';
 import { Role, UserProfile } from '../types';
-import { showAlert } from '../utils/alert';
+import { confirmAlert, showAlert } from '../utils/alert';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'UserManagement'>;
 
@@ -33,6 +35,7 @@ const ROLE_LABEL: Record<Role, string> = { admin: 'Administrador', staff: 'Equip
 export function UserManagementScreen({ navigation }: Props) {
   const orgId = useAuthStore((s) => s.user?.orgId ?? null);
   const currentUid = useAuthStore((s) => s.user?.uid);
+  const currentUserName = useAuthStore((s) => s.user?.displayName ?? 'Admin');
   const { contentStyle } = useResponsiveContent();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -43,6 +46,7 @@ export function UserManagementScreen({ navigation }: Props) {
   const [role, setRole] = useState<Role>('staff');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [resettingUid, setResettingUid] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orgId) return;
@@ -87,6 +91,32 @@ export function UserManagementScreen({ navigation }: Props) {
       setError(err?.message ?? 'Não foi possível cadastrar o usuário.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (user: UserProfile) => {
+    if (!orgId || !currentUid) return;
+    const confirmed = await confirmAlert(
+      'Redefinir senha',
+      `Enviar e-mail de redefinição de senha para ${user.email}?`,
+      'Enviar'
+    );
+    if (!confirmed) return;
+    setResettingUid(user.uid);
+    try {
+      await sendPasswordReset(user.email);
+      await logAuditEvent({
+        orgId,
+        userId: currentUid,
+        userName: currentUserName,
+        type: 'password_reset_requested',
+        detail: user.displayName,
+      });
+      showAlert('E-mail enviado', `Enviamos um link de redefinição de senha para ${user.email}.`);
+    } catch (err: any) {
+      showAlert('Erro', err?.message ?? 'Não foi possível enviar o e-mail de redefinição.');
+    } finally {
+      setResettingUid(null);
     }
   };
 
@@ -233,6 +263,21 @@ export function UserManagementScreen({ navigation }: Props) {
                       </Text>
                     </View>
                   </View>
+                  {user.uid !== currentUid && (
+                    <AnimatedPressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Redefinir senha"
+                      style={styles.resetBtn}
+                      disabled={resettingUid === user.uid}
+                      onPress={() => handleResetPassword(user)}
+                    >
+                      {resettingUid === user.uid ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Ionicons name="key-outline" size={18} color={colors.primary} />
+                      )}
+                    </AnimatedPressable>
+                  )}
                   <Switch
                     accessibilityLabel={user.active ? 'Desativar usuário' : 'Ativar usuário'}
                     value={user.active}
@@ -413,5 +458,13 @@ const styles = StyleSheet.create({
   },
   roleBadgeTextAdmin: {
     color: colors.sand,
+  },
+  resetBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryMuted,
   },
 });

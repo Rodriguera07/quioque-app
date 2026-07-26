@@ -38,6 +38,13 @@ const NAV_ITEMS: DrawerItem[] = [
     muted: colors.primaryMuted,
   },
   {
+    key: 'ChangePassword',
+    label: 'Alterar Senha',
+    icon: 'key-outline',
+    color: colors.primary,
+    muted: colors.primaryMuted,
+  },
+  {
     key: 'UserManagement',
     label: 'Gerenciar Usuários',
     icon: 'people-outline',

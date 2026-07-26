@@ -100,7 +100,9 @@ export type AuditEventType =
   | 'table_opened'
   | 'items_added'
   | 'table_closed'
-  | 'payment_recorded';
+  | 'payment_recorded'
+  | 'password_changed'
+  | 'password_reset_requested';
 
 export interface AuditLogEntry {
   id: string;

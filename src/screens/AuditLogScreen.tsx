@@ -46,15 +46,28 @@ const EVENT_META: Record<
     color: colors.coral,
     muted: colors.coralMuted,
   },
+  password_changed: {
+    label: 'Alterou a senha',
+    icon: 'key-outline',
+    color: colors.primary,
+    muted: colors.primaryMuted,
+  },
+  password_reset_requested: {
+    label: 'Solicitou redefinição de senha',
+    icon: 'mail-outline',
+    color: colors.primary,
+    muted: colors.primaryMuted,
+  },
 };
 
-const FILTERS: { key: AuditEventType | 'all'; label: string }[] = [
+const FILTERS: { key: AuditEventType | 'all' | 'password'; label: string }[] = [
   { key: 'all', label: 'Tudo' },
   { key: 'table_opened', label: 'Abriu mesa' },
   { key: 'items_added', label: 'Itens' },
   { key: 'table_closed', label: 'Fechou mesa' },
   { key: 'payment_recorded', label: 'Pagamento' },
   { key: 'login', label: 'Login/Logout' },
+  { key: 'password', label: 'Senha' },
 ];
 
 const PAGE_SIZE = 40;
@@ -78,7 +91,7 @@ export function AuditLogScreen({ navigation }: Props) {
   const { contentStyle } = useResponsiveContent();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const [filter, setFilter] = useState<AuditEventType | 'all'>('all');
+  const [filter, setFilter] = useState<AuditEventType | 'all' | 'password'>('all');
 
   useEffect(() => {
     if (!orgId) return;
@@ -88,6 +101,11 @@ export function AuditLogScreen({ navigation }: Props) {
   const filtered = useMemo(() => {
     if (filter === 'all') return entries;
     if (filter === 'login') return entries.filter((e) => e.type === 'login' || e.type === 'logout');
+    if (filter === 'password') {
+      return entries.filter(
+        (e) => e.type === 'password_changed' || e.type === 'password_reset_requested'
+      );
+    }
     return entries.filter((e) => e.type === filter);
   }, [entries, filter]);
 
