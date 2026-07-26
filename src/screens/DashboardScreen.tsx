@@ -2,15 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { EmptyState } from '../components/EmptyState';
 import { PulseDot } from '../components/PulseDot';
-import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { TableCard } from '../components/TableCard';
+import { WaveDivider } from '../components/WaveDivider';
 import { useAuthStore } from '../context/useAuthStore';
 import {
   getClosedTablesToday,
@@ -21,13 +20,27 @@ import {
 } from '../context/usePosStore';
 import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
 import { RootStackParamList } from '../navigation/types';
-import { formatCurrency, formatTime } from '../utils/format';
+import { getDaySummary } from '../services/firestoreOrg';
+import { formatDateKey, formatTime } from '../utils/format';
 import { useTick } from '../hooks/useTick';
 import { useResponsiveContent, widthForColumns } from '../hooks/useResponsiveContent';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
 type EndDayDialog = 'blocked-open' | 'blocked-empty' | 'confirm' | null;
+
+const TOP_ITEMS_COUNT = 3;
+const RANK_STYLE = [
+  { bg: colors.coralMuted, fg: colors.coral },
+  { bg: colors.primaryMuted, fg: colors.primary },
+  { bg: colors.sandMuted, fg: colors.sand },
+];
+
+function splitCurrencyParts(value: number): { main: string; cents: string } {
+  const fixed = Math.max(0, value).toFixed(2);
+  const [intPart, centsPart] = fixed.split('.');
+  return { main: `R$ ${Number(intPart).toLocaleString('pt-BR')}`, cents: centsPart };
+}
 
 export function DashboardScreen({ navigation }: Props) {
   useTick(30000); // mantém o tempo decorrido das mesas atualizado
@@ -41,11 +54,13 @@ export function DashboardScreen({ navigation }: Props) {
   // avança quando o painel de notificações é fechado, para a lista não
   // sumir enquanto o usuário ainda está com o painel aberto na tela.
   const [notifSeenAt, setNotifSeenAt] = useState(() => new Date().toISOString());
+  const [yesterdayRevenue, setYesterdayRevenue] = useState<number | null>(null);
 
   const userName = useAuthStore((s) => s.user?.displayName ?? null);
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const logout = useAuthStore((s) => s.logout);
 
+  const orgId = usePosStore((s) => s.orgId);
   const tables = usePosStore((s) => s.tables);
   const closedSalesToday = usePosStore((s) => s.closedSalesToday);
   const endDay = usePosStore((s) => s.endDay);
@@ -53,8 +68,23 @@ export function DashboardScreen({ navigation }: Props) {
   const openTables = getOpenTables(tables);
   const closedTables = getClosedTablesToday(tables);
   const revenue = getTodayRevenue(closedSalesToday);
-  const topItems = getTopSellingItems(tables, closedSalesToday, 5);
+  const topItems = getTopSellingItems(tables, closedSalesToday, TOP_ITEMS_COUNT);
   const topMax = topItems[0]?.quantity ?? 1;
+
+  useEffect(() => {
+    if (!orgId) {
+      setYesterdayRevenue(null);
+      return;
+    }
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    getDaySummary(orgId, formatDateKey(yesterday))
+      .then((summary) => setYesterdayRevenue(summary?.totalRevenue ?? null))
+      .catch(() => setYesterdayRevenue(null));
+  }, [orgId]);
+
+  const trendPct =
+    yesterdayRevenue && yesterdayRevenue > 0 ? ((revenue - yesterdayRevenue) / yesterdayRevenue) * 100 : null;
 
   const newTableNotifications = useMemo(
     () =>
@@ -64,6 +94,7 @@ export function DashboardScreen({ navigation }: Props) {
     [openTables, notifSeenAt]
   );
   const avgTicket = closedTables.length > 0 ? revenue / closedTables.length : 0;
+  const { main: revenueMain, cents: revenueCents } = splitCurrencyParts(revenue);
 
   const today = new Date();
   const dateLabel = today.toLocaleDateString('pt-BR', {
@@ -71,7 +102,6 @@ export function DashboardScreen({ navigation }: Props) {
     day: '2-digit',
     month: 'long',
   });
-  const initial = (userName ?? 'G').charAt(0).toUpperCase();
 
   const handleEndDay = () => {
     if (!isAdmin) return;
@@ -116,16 +146,8 @@ export function DashboardScreen({ navigation }: Props) {
             accessibilityRole="button"
             onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           >
-            <Ionicons name="menu" size={24} color={colors.textInverse} />
+            <Ionicons name="menu" size={22} color={colors.textInverse} />
           </AnimatedPressable>
-          <LinearGradient
-            colors={[colors.emerald, colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText}>{initial}</Text>
-          </LinearGradient>
           <View style={styles.headerTextWrap}>
             <Text style={styles.greeting} numberOfLines={1}>
               Olá, {userName ?? 'Gerente'}
@@ -156,47 +178,75 @@ export function DashboardScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <View style={styles.receipt}>
-        <View style={styles.receiptTopRow}>
-          <Text style={styles.receiptLabel}>RESUMO DO CAIXA</Text>
-          <View style={styles.statusPill}>
-            <PulseDot size={6} />
-            <Text style={styles.statusText}>caixa aberto</Text>
+      <View style={styles.heroCard}>
+        <LinearGradient
+          colors={[colors.emerald, colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={styles.heroGlow} pointerEvents="none" />
+
+        <View style={styles.heroInner}>
+          <View style={styles.heroTopRow}>
+            <Text style={styles.heroLabel}>CAIXA DO DIA</Text>
+            <View style={styles.statusPill}>
+              <PulseDot color={colors.white} size={6} />
+              <Text style={styles.statusPillText}>Aberto</Text>
+            </View>
+          </View>
+
+          <Text style={styles.heroSubLabel}>Faturamento de hoje</Text>
+          <View style={styles.heroAmountRow}>
+            <Text style={styles.heroAmountMain}>{revenueMain}</Text>
+            <Text style={styles.heroAmountCents}>,{revenueCents}</Text>
+          </View>
+          {trendPct !== null && (
+            <View style={styles.trendRow}>
+              <Ionicons
+                name={trendPct >= 0 ? 'arrow-up' : 'arrow-down'}
+                size={12}
+                color={colors.white}
+              />
+              <Text style={styles.trendText}>
+                {Math.abs(trendPct).toFixed(0)}% em relação a ontem
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.waveWrap}>
+            <WaveDivider />
+          </View>
+
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{openTables.length}</Text>
+              <Text style={styles.heroStatLabel}>em atendimento</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>{closedTables.length}</Text>
+              <Text style={styles.heroStatLabel}>fechadas hoje</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <Text style={styles.heroStatValue}>
+                {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+              <Text style={styles.heroStatLabel}>ticket médio</Text>
+            </View>
           </View>
         </View>
 
-        <AnimatedPressable
-          style={styles.revenueLinkRow}
-          onPress={() => navigation.navigate('Reports')}
-        >
-          <Ionicons name="receipt-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.revenueLinkText}>Ver faturamento em Relatórios</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        <AnimatedPressable style={styles.heroFooter} onPress={() => navigation.navigate('Reports')}>
+          <Text style={styles.heroFooterText}>Ver faturamento completo em Relatórios</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.white} />
         </AnimatedPressable>
-
-        <View style={styles.receiptStatsRow}>
-          <View style={styles.receiptStat}>
-            <Text style={styles.receiptStatValue}>{openTables.length}</Text>
-            <Text style={styles.receiptStatLabel}>em atendimento</Text>
-          </View>
-          <View style={styles.receiptStatDivider} />
-          <View style={styles.receiptStat}>
-            <Text style={styles.receiptStatValue}>{closedTables.length}</Text>
-            <Text style={styles.receiptStatLabel}>fechadas hoje</Text>
-          </View>
-          <View style={styles.receiptStatDivider} />
-          <View style={styles.receiptStat}>
-            <Text style={styles.receiptStatValue}>
-              {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </Text>
-            <Text style={styles.receiptStatLabel}>ticket médio</Text>
-          </View>
-        </View>
       </View>
-      <ReceiptTornEdge />
 
-      <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
-        <Text style={styles.sectionTitle}>Mais vendidos do dia</Text>
+      <View style={[styles.sectionHeaderRow, { marginTop: spacing.lg }]}>
+        <Text style={styles.sectionTitleBold}>Mais vendidos hoje</Text>
+        <Text style={styles.sectionCount}>Top {TOP_ITEMS_COUNT}</Text>
       </View>
 
       {topItems.length === 0 ? (
@@ -207,9 +257,12 @@ export function DashboardScreen({ navigation }: Props) {
         <View style={styles.topItemsCard}>
           {topItems.map((item, index) => {
             const pct = Math.max(4, Math.round((item.quantity / topMax) * 100));
+            const rank = RANK_STYLE[index] ?? RANK_STYLE[RANK_STYLE.length - 1];
             return (
               <View key={item.menuItemId} style={styles.topItemRow}>
-                <Text style={styles.topItemRank}>{index + 1}</Text>
+                <View style={[styles.rankCircle, { backgroundColor: rank.bg }]}>
+                  <Text style={[styles.rankNumber, { color: rank.fg }]}>{index + 1}</Text>
+                </View>
                 <View style={styles.topItemBody}>
                   <Text style={styles.topItemName} numberOfLines={1}>
                     {item.name}
@@ -225,18 +278,30 @@ export function DashboardScreen({ navigation }: Props) {
         </View>
       )}
 
-      <View style={styles.tablesCard}>
-        <View style={styles.tablesCardHeader}>
-          <Text style={styles.sectionTitle}>Mesas abertas</Text>
-          <Text style={styles.tablesCardCount}>{openTables.length}</Text>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitleBold}>Mesas abertas</Text>
+        <View style={styles.sectionHeaderRight}>
+          <Text style={styles.sectionCount}>
+            {openTables.length} {openTables.length === 1 ? 'ativa' : 'ativas'}
+          </Text>
+          <AnimatedPressable
+            style={styles.addTableBtn}
+            accessibilityLabel="Abrir nova mesa"
+            onPress={() => navigation.navigate('OpenTable')}
+          >
+            <Ionicons name="add" size={18} color={colors.textInverse} />
+          </AnimatedPressable>
         </View>
+      </View>
 
+      <View style={styles.tablesCard}>
         {openTables.length === 0 ? (
-          <EmptyState
-            icon="restaurant-outline"
-            title="Nenhuma mesa aberta"
-            subtitle="Toque em 'Abrir Nova Mesa' para começar um atendimento."
-          />
+          <View style={styles.tablesEmptyRow}>
+            <View style={styles.tablesEmptyIconWrap}>
+              <Ionicons name="umbrella-outline" size={22} color={colors.primary} />
+            </View>
+            <Text style={styles.tablesEmptyText}>Nenhuma mesa aberta no momento.</Text>
+          </View>
         ) : (
           <View style={styles.tablesGrid}>
             {openTables.map((table) => (
@@ -267,11 +332,6 @@ export function DashboardScreen({ navigation }: Props) {
       )}
 
       </ScrollView>
-
-      <AnimatedPressable style={styles.fabWrap} onPress={() => navigation.navigate('OpenTable')}>
-        <Ionicons name="add" size={22} color={colors.textInverse} />
-        <Text style={styles.fabLabel}>Abrir Nova Mesa</Text>
-      </AnimatedPressable>
 
       <ConfirmModal
         visible={endDayDialog === 'blocked-open'}
@@ -308,7 +368,9 @@ export function DashboardScreen({ navigation }: Props) {
       >
         <View style={styles.endDayRevenueBox}>
           <Text style={styles.endDayRevenueLabel}>FATURAMENTO DE HOJE</Text>
-          <Text style={styles.endDayRevenueValue}>{formatCurrency(revenue)}</Text>
+          <Text style={styles.endDayRevenueValue}>
+            {revenueMain},{revenueCents}
+          </Text>
         </View>
         <Text style={styles.endDayConfirmSub}>
           O caixa será fechado e o painel será zerado para amanhã.
@@ -378,7 +440,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.xxxl + 64,
+    paddingBottom: spacing.xxxl,
   },
   header: {
     flexDirection: 'row',
@@ -395,25 +457,9 @@ const styles = StyleSheet.create({
   headerTextWrap: {
     flexShrink: 1,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.emerald,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  avatarText: {
-    ...typography.h3,
-    color: colors.textInverse,
-  },
   greeting: {
     ...typography.h1,
-    fontSize: 22,
+    fontSize: 21,
     color: colors.textPrimary,
   },
   date: {
@@ -556,79 +602,122 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 1,
   },
-  receipt: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderBottomWidth: 0,
+  heroCard: {
     borderRadius: radius.xxl,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  heroGlow: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: colors.coral,
+    opacity: 0.4,
+  },
+  heroInner: {
     padding: spacing.lg,
   },
-  receiptTopRow: {
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  receiptLabel: {
-    ...typography.caption,
+  heroLabel: {
+    ...typography.label,
     fontFamily: monoFontFamily,
     letterSpacing: 1.5,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.85)',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  statusText: {
-    ...typography.caption,
-    color: colors.emerald,
-  },
-  revenueLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
+    paddingVertical: 4,
   },
-  revenueLinkText: {
-    ...typography.bodySm,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  receiptStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderStyle: 'dashed',
-    borderTopColor: colors.borderLight,
-    paddingTop: spacing.sm,
-  },
-  receiptStat: {
-    flex: 1,
-  },
-  receiptStatValue: {
-    ...typography.h3,
-    fontFamily: monoFontFamily,
-    color: colors.textPrimary,
-  },
-  receiptStatLabel: {
+  statusPillText: {
     ...typography.caption,
-    color: colors.textMuted,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  heroSubLabel: {
+    ...typography.bodySm,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: spacing.md,
+  },
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     marginTop: 2,
   },
-  receiptStatDivider: {
+  heroAmountMain: {
+    ...typography.display,
+    fontSize: 36,
+    color: colors.white,
+  },
+  heroAmountCents: {
+    ...typography.h2,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: 3,
+  },
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.xxs,
+  },
+  trendText: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  waveWrap: {
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  heroStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroStat: {
+    flex: 1,
+  },
+  heroStatValue: {
+    ...typography.h2,
+    fontFamily: monoFontFamily,
+    color: colors.white,
+  },
+  heroStatLabel: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 2,
+  },
+  heroStatDivider: {
     width: 1,
-    height: 26,
-    backgroundColor: colors.borderLight,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     marginHorizontal: spacing.sm,
+  },
+  heroFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  heroFooterText: {
+    ...typography.bodySm,
+    fontWeight: '700',
+    color: colors.white,
   },
   endDayBar: {
     flexDirection: 'row',
@@ -666,18 +755,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
-    marginTop: spacing.xs,
+    marginTop: spacing.lg,
   },
-  sectionTitle: {
-    ...typography.label,
-    fontSize: 12,
-    letterSpacing: 1.4,
+  sectionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sectionTitleBold: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  sectionCount: {
+    ...typography.caption,
     color: colors.textMuted,
+  },
+  addTableBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tablesCard: {
     backgroundColor: colors.surfaceElevated,
@@ -687,23 +791,36 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  tablesCardHeader: {
+  tablesEmptyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
   },
-  tablesCardCount: {
-    ...typography.caption,
-    fontFamily: monoFontFamily,
+  tablesEmptyIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tablesEmptyText: {
+    ...typography.bodySm,
     color: colors.textMuted,
+    flex: 1,
   },
   topItemsCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: radius.xl,
+    padding: spacing.md,
     marginBottom: spacing.lg,
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   topItemsEmpty: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -720,11 +837,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  topItemRank: {
+  rankCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankNumber: {
     ...typography.caption,
-    fontFamily: monoFontFamily,
-    color: colors.sand,
-    width: 14,
+    fontWeight: '800',
   },
   topItemBody: {
     flex: 1,
@@ -738,13 +860,13 @@ const styles = StyleSheet.create({
   topItemBarTrack: {
     height: 5,
     borderRadius: 3,
-    backgroundColor: colors.primaryMuted,
+    backgroundColor: colors.coralMuted,
     overflow: 'hidden',
   },
   topItemBarFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: colors.sand,
+    backgroundColor: colors.coral,
   },
   topItemQty: {
     ...typography.bodySm,
@@ -755,27 +877,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  fabWrap: {
-    position: 'absolute',
-    bottom: spacing.lg,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.sand,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radius.full,
-    shadowColor: colors.sand,
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fabLabel: {
-    ...typography.h3,
-    color: colors.textInverse,
   },
   endDayRevenueBox: {
     width: '100%',

@@ -1,14 +1,14 @@
-// "Beach bar by day" theme: clean, light, high-contrast base with the same
-// turquoise / sunset-coral / golden-sand accent family as the dark theme.
+// "Beach bar by day" theme: warm sand base with the same turquoise /
+// sunset-coral / golden-sand accent family as the dark theme.
 export const colors = {
-  // Base — praia clara (branco levemente frio)
-  background: '#F4F6F8',
-  backgroundAlt: '#EAEDF1',
-  surface: '#FFFFFF',
-  surfaceElevated: '#FFFFFF',
-  surfaceHighlight: '#EEF1F5',
-  border: '#E4E7EC',
-  borderLight: '#D7DCE3',
+  // Base — areia quente (bege claro, em vez do cinza frio anterior)
+  background: '#F1E8D4',
+  backgroundAlt: '#E8DCBE',
+  surface: '#FFFDF8',
+  surfaceElevated: '#FFFDF8',
+  surfaceHighlight: '#F3ECDA',
+  border: '#E6DBBF',
+  borderLight: '#DCCEA8',
 
   // Marca — mar / turquesa
   primary: '#0D8FA6', // teal do oceano — interativo geral
@@ -36,9 +36,9 @@ export const colors = {
   info: '#0D8FA6',
 
   // Texto
-  textPrimary: '#161A1F',
-  textSecondary: '#5B6672',
-  textMuted: '#8A93A0',
+  textPrimary: '#211D14',
+  textSecondary: '#635B48',
+  textMuted: '#948B72',
   textInverse: '#FFFFFF',
 
   // Formas de pagamento (cores distintas para facilitar leitura em gráficos)

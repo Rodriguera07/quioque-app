@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -152,6 +153,15 @@ interface DaySummaryRollup {
   totalRevenue: number;
   paymentBreakdown: Record<PaymentMethod, number>;
   closedAt: string;
+}
+
+// Rollup do dia anterior (gravado no encerramento de dia), usado só para
+// comparar o faturamento de hoje com o de ontem no Painel. Se o dia anterior
+// nunca foi encerrado (primeiro dia de uso, por exemplo), não existe rollup
+// e a comparação simplesmente não aparece — não fabricamos um valor.
+export async function getDaySummary(orgId: string, date: string): Promise<DaySummaryRollup | null> {
+  const snap = await getDoc(daySummaryDoc(orgId, date));
+  return snap.exists() ? (snap.data() as DaySummaryRollup) : null;
 }
 
 // Zera o quadro do dia (apaga as mesas já fechadas) e grava o rollup usado
