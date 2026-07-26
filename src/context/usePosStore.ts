@@ -10,6 +10,7 @@ import {
   type CloseTableResult,
 } from '../services/firestoreOrg';
 import { logAuditEvent } from '../services/auditLog';
+import { notifyAdmins } from '../services/notifications';
 import { ClosedSale, DaySummary, MenuItem, OrderItem, PaymentMethod, SplitPayment, Table } from '../types';
 import {
   MAX_SPLIT_COUNT,
@@ -127,6 +128,12 @@ export const usePosStore = create<PosState>((set, get) => ({
       tableId: id,
       tableLabel: trimmedLabel,
     });
+    notifyAdmins(
+      orgId,
+      currentUser.uid,
+      'Mesa aberta',
+      `${currentUser.displayName} abriu a mesa ${trimmedLabel}.`
+    );
 
     return id;
   },
@@ -169,6 +176,12 @@ export const usePosStore = create<PosState>((set, get) => ({
       tableLabel: table.label,
       detail: `${quantity}x ${menuItem.name}`,
     });
+    notifyAdmins(
+      orgId,
+      currentUser.uid,
+      'Itens adicionados',
+      `${currentUser.displayName} adicionou ${quantity}x ${menuItem.name} na mesa ${table.label}.`
+    );
   },
 
   incrementItem: (tableId, orderItemId) => {
@@ -268,6 +281,12 @@ export const usePosStore = create<PosState>((set, get) => ({
       tableLabel: table.label,
       detail: `${PAYMENT_METHOD_LABEL[method]} · ${amount.toFixed(2)}`,
     });
+    notifyAdmins(
+      orgId,
+      currentUser.uid,
+      'Pagamento registrado',
+      `${currentUser.displayName} registrou ${PAYMENT_METHOD_LABEL[method]} (R$ ${amount.toFixed(2)}) na mesa ${table.label}.`
+    );
   },
 
   closeTable: async (tableId) => {
@@ -291,6 +310,12 @@ export const usePosStore = create<PosState>((set, get) => ({
         tableId,
         tableLabel: table.label,
       });
+      notifyAdmins(
+        orgId,
+        currentUser.uid,
+        'Mesa fechada',
+        `${currentUser.displayName} fechou a mesa ${table.label}.`
+      );
     }
 
     return result;

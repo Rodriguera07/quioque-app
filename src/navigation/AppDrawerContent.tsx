@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentComponentProps, useDrawerProgress } from '@react-navigation/drawer';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import ReanimatedAnimated, {
   Extrapolation,
   interpolate,
@@ -25,6 +25,9 @@ interface DrawerItem {
   color: string;
   muted: string;
   adminOnly?: boolean;
+  // Aparece na seção "Administração" para qualquer papel (não restrito a
+  // admin), diferente de `adminOnly` que só admins veem.
+  accountSection?: boolean;
 }
 
 const NAV_ITEMS: DrawerItem[] = [
@@ -34,13 +37,6 @@ const NAV_ITEMS: DrawerItem[] = [
     key: 'ClosedTablesHistory',
     label: 'Histórico de Mesas Fechadas',
     icon: 'time-outline',
-    color: colors.primary,
-    muted: colors.primaryMuted,
-  },
-  {
-    key: 'ChangePassword',
-    label: 'Alterar Senha',
-    icon: 'key-outline',
     color: colors.primary,
     muted: colors.primaryMuted,
   },
@@ -59,6 +55,14 @@ const NAV_ITEMS: DrawerItem[] = [
     color: colors.danger,
     muted: colors.dangerMuted,
     adminOnly: true,
+  },
+  {
+    key: 'ChangePassword',
+    label: 'Alterar Senha',
+    icon: 'key-outline',
+    color: colors.primary,
+    muted: colors.primaryMuted,
+    accountSection: true,
   },
 ];
 
@@ -155,8 +159,13 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
 
   const activeRouteName = getActiveInnerRouteName(state);
   const initial = (user?.displayName ?? 'U').charAt(0).toUpperCase();
-  const mainItems = NAV_ITEMS.filter((item) => !item.adminOnly);
-  const adminItems = NAV_ITEMS.filter((item) => item.adminOnly && user?.role === 'admin');
+  const mainItems = NAV_ITEMS.filter((item) => !item.adminOnly && !item.accountSection);
+  // "Administração" reúne o que é exclusivo de admin (só aparece pra quem é
+  // admin) e o que é da própria conta (ex.: trocar senha), que qualquer
+  // papel pode ver — por isso a seção nunca fica vazia.
+  const adminItems = NAV_ITEMS.filter(
+    (item) => item.accountSection || (item.adminOnly && user?.role === 'admin')
+  );
   const totalStagger = mainItems.length + adminItems.length + 1;
   const headerStyle = useStaggerStyle(-1, totalStagger);
 
@@ -203,7 +212,11 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
           </ReanimatedAnimated.View>
         </LinearGradient>
 
-        <View style={styles.itemsList}>
+        <ScrollView
+          style={styles.itemsList}
+          contentContainerStyle={styles.itemsListContent}
+          showsVerticalScrollIndicator={false}
+        >
           <SectionLabel label="Menu" index={0} total={totalStagger} />
           <View style={{ gap: spacing.xxs, marginTop: spacing.xxs }}>
             {mainItems.map((item, index) => (
@@ -240,7 +253,7 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
               </View>
             </>
           )}
-        </View>
+        </ScrollView>
 
         <View style={styles.footer}>
           <AnimatedPressable
@@ -251,7 +264,7 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
             onPress={logout}
           >
             <View style={styles.logoutIconWrap}>
-              <Ionicons name="log-out-outline" size={17} color={colors.danger} />
+              <Ionicons name="log-out-outline" size={17} color={colors.textInverse} />
             </View>
             <Text style={styles.logoutText}>Sair</Text>
           </AnimatedPressable>
@@ -383,8 +396,11 @@ const styles = StyleSheet.create({
   },
   itemsList: {
     flex: 1,
+  },
+  itemsListContent: {
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.md,
   },
   sectionLabel: {
     ...typography.label,
@@ -456,7 +472,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.lg,
-    backgroundColor: colors.dangerMuted,
+    backgroundColor: colors.danger,
+    shadowColor: colors.danger,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   logoutIconWrap: {
     width: 30,
@@ -467,7 +488,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     ...typography.body,
-    color: colors.danger,
+    color: colors.textInverse,
     fontWeight: '700',
   },
   version: {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "946898329906",
+    "project_id": "ticket-park-167e8",
+    "storage_bucket": "ticket-park-167e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:946898329906:android:7f2ca87599703dff8db72b",
+        "android_client_info": {
+          "package_name": "com.rodrigodantas.quiosquepdv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANb0YLG2kG6aT9hl1WUvAs8Rmh9UCs5tY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

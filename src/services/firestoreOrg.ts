@@ -180,6 +180,21 @@ export function setOrgUserActive(orgId: string, uid: string, active: boolean): P
   return updateDoc(doc(orgUsersCol(orgId), uid), { active });
 }
 
+export function setUserPushToken(orgId: string, uid: string, expoPushToken: string): Promise<void> {
+  return updateDoc(doc(orgUsersCol(orgId), uid), { expoPushToken });
+}
+
+// Tokens dos admins ativos da org, exceto quem disparou a ação (não faz
+// sentido notificar o próprio admin sobre algo que ele mesmo fez).
+export async function getAdminPushTokens(orgId: string, excludeUid?: string): Promise<string[]> {
+  const q = query(orgUsersCol(orgId), where('role', '==', 'admin'), where('active', '==', true));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data() as UserProfile)
+    .filter((u) => u.uid !== excludeUid && !!u.expoPushToken)
+    .map((u) => u.expoPushToken as string);
+}
+
 export function subscribeAuditLog(
   orgId: string,
   pageSize: number,

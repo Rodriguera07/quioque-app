@@ -92,6 +92,7 @@ export interface UserProfile {
   active: boolean;
   createdAt: string; // ISO
   createdBy: string; // uid de quem criou
+  expoPushToken?: string;
 }
 
 export type AuditEventType =

@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuthStore } from '../context/useAuthStore';
 import { usePosStore } from '../context/usePosStore';
 import { LoginScreen } from '../screens/LoginScreen';
+import { registerForPushNotificationsAsync } from '../services/notifications';
 import { colors } from '../theme';
 import { AppDrawer } from './AppDrawer';
 
@@ -23,6 +24,7 @@ export function RootNavigator() {
   useEffect(() => {
     if (uid && orgId && displayName) {
       usePosStore.getState().initOrgSync(orgId, { uid, displayName });
+      registerForPushNotificationsAsync(orgId, uid);
     } else {
       usePosStore.getState().teardownOrgSync();
     }
