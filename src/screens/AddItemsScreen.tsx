@@ -21,7 +21,7 @@ import { CATEGORY_ICONS, CATEGORY_LABELS, MENU_ITEMS } from '../data/menu';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { MenuCategory, MenuItem } from '../types';
 import { formatCurrency } from '../utils/format';
 
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     ...typography.bodySm,
-    fontWeight: '600',
+    fontFamily: nunitoFontFamily.semiBold,
     color: colors.textPrimary,
   },
   categoryChipTextActive: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.emerald,
     marginTop: 4,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   addBtn: {
     width: 36,

@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   fabWrap: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.lg + 2,
+    bottom: spacing.xxxl + spacing.lg,
     shadowColor: HERO.sun600,
     shadowOpacity: 0.44,
     shadowRadius: 16,

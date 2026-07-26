@@ -11,7 +11,7 @@ import ReanimatedAnimated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { useAuthStore } from '../context/useAuthStore';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { RootStackParamList } from './types';
 
 type NoParamRoute = {
@@ -137,7 +137,7 @@ function DrawerNavRow({
           <Ionicons name={item.icon} size={19} color={item.color} />
         </View>
         <Text
-          style={[styles.itemLabel, active && { color: item.color, fontWeight: '700' }]}
+          style={[styles.itemLabel, active && { color: item.color, fontFamily: nunitoFontFamily.bold }]}
           numberOfLines={1}
         >
           {item.label}
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     ...typography.caption,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
     color: colors.textInverse,
   },
   itemsList: {
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
   logoutText: {
     ...typography.body,
     color: colors.textInverse,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   version: {
     ...typography.caption,

@@ -15,10 +15,13 @@ export const serifFontFamily = {
   bold: 'Fraunces_700Bold',
 };
 
-// Idem, para o corpo em Nunito usado especificamente no Painel (ver
-// DashboardScreen) — não é a fonte padrão do resto do app (ver comentário
-// abaixo em `typography`).
+// Nunito é a fonte padrão do corpo do app (ver `typography` abaixo). Usada
+// também para sobrescrever pontualmente o peso de um texto que já herda um
+// dos tokens de `typography` — nesses casos, sempre troque `fontWeight` por
+// `fontFamily: nunitoFontFamily.x`, já que pesos de fontes estáticas
+// customizadas não respondem a `fontWeight` numérico.
 export const nunitoFontFamily = {
+  regular: 'Nunito_400Regular',
   medium: 'Nunito_500Medium',
   semiBold: 'Nunito_600SemiBold',
   bold: 'Nunito_700Bold',
@@ -37,22 +40,18 @@ type TypeScale =
   | 'label'
   | 'mono';
 
-// Mantém a fonte padrão do sistema na escala global: muitos estilos pelo
-// app combinam esses tokens com um `fontWeight` próprio por cima (ex.:
-// `{...typography.bodySm, fontWeight: '700'}`), o que não funciona com
-// fontes customizadas estáticas (cada peso é um arquivo .ttf separado, e o
-// SO ignora `fontWeight` numérico nesse caso). Nunito/Fraunces são usadas
-// só nos pontos específicos do Painel que pedem esse visual (ver
-// DashboardScreen), setando `fontFamily` explicitamente ali.
+// Nunito é a fonte padrão de todo o app (mesma usada no Painel). Cada peso
+// é um arquivo estático separado (ver nunitoFontFamily) — qualquer override
+// pontual de ênfase precisa trocar `fontFamily`, não `fontWeight`.
 export const typography: Record<TypeScale, TextStyle> = {
-  display: { fontSize: 34, fontWeight: '800', letterSpacing: -0.5 },
-  h1: { fontSize: 26, fontWeight: '700', letterSpacing: -0.3 },
-  h2: { fontSize: 20, fontWeight: '700', letterSpacing: -0.2 },
-  h3: { fontSize: 17, fontWeight: '600' },
-  bodyLg: { fontSize: 16, fontWeight: '500' },
-  body: { fontSize: 14, fontWeight: '400' },
-  bodySm: { fontSize: 13, fontWeight: '400' },
-  caption: { fontSize: 12, fontWeight: '500' },
-  label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
-  mono: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
+  display: { fontSize: 34, fontFamily: nunitoFontFamily.extraBold, letterSpacing: -0.5 },
+  h1: { fontSize: 26, fontFamily: nunitoFontFamily.bold, letterSpacing: -0.3 },
+  h2: { fontSize: 20, fontFamily: nunitoFontFamily.bold, letterSpacing: -0.2 },
+  h3: { fontSize: 17, fontFamily: nunitoFontFamily.semiBold },
+  bodyLg: { fontSize: 16, fontFamily: nunitoFontFamily.medium },
+  body: { fontSize: 14, fontFamily: nunitoFontFamily.regular },
+  bodySm: { fontSize: 13, fontFamily: nunitoFontFamily.regular },
+  caption: { fontSize: 12, fontFamily: nunitoFontFamily.medium },
+  label: { fontSize: 11, fontFamily: nunitoFontFamily.bold, letterSpacing: 0.6 },
+  mono: { fontSize: 15, fontFamily: nunitoFontFamily.bold, letterSpacing: -0.2 },
 };

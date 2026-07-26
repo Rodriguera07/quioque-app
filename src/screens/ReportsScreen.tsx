@@ -12,7 +12,7 @@ import { useAuthStore } from '../context/useAuthStore';
 import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { formatCurrency, formatDateLabel } from '../utils/format';
 import { getPeriodReport } from '../utils/reports';
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   presetTextActive: {
     color: colors.textInverse,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   dateRow: {
     flexDirection: 'row',
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   topItemName: {
     ...typography.bodySm,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
     color: colors.textPrimary,
     flex: 1,
   },

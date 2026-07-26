@@ -18,7 +18,7 @@ import {
 } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { formatCurrency, formatTime } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TableDetail'>;
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     ...typography.bodySm,
     color: colors.textInverse,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   itemsCard: {
     backgroundColor: colors.surface,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   splitSummaryValue: {
     ...typography.bodySm,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   splitPerPersonBox: {
     marginTop: spacing.xs,

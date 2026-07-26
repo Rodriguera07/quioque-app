@@ -17,7 +17,7 @@ import { Button } from '../components/Button';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OpenTable'>;
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: colors.primary,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   error: {
     ...typography.bodySm,

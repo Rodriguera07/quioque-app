@@ -1,5 +1,6 @@
 import { Fraunces_500Medium, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import {
+  Nunito_400Regular,
   Nunito_500Medium,
   Nunito_600SemiBold,
   Nunito_700Bold,
@@ -32,6 +33,7 @@ export default function App() {
   useEffect(() => initAuthListener(), []);
 
   const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
     Nunito_500Medium,
     Nunito_600SemiBold,
     Nunito_700Bold,

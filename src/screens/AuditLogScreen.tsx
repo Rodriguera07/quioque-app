@@ -10,7 +10,7 @@ import { useAuthStore } from '../context/useAuthStore';
 import { RootStackParamList } from '../navigation/types';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { subscribeAuditLog } from '../services/firestoreOrg';
-import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { AuditEventType, AuditLogEntry } from '../types';
 import { formatDateLabel, formatTime } from '../utils/format';
 
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     ...typography.bodySm,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
     color: colors.textPrimary,
   },
   rowSub: {
@@ -315,6 +315,6 @@ const styles = StyleSheet.create({
   loadMoreText: {
     ...typography.bodySm,
     color: colors.primary,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
 });

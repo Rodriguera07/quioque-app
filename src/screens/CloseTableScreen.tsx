@@ -16,7 +16,7 @@ import {
   usePosStore,
 } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { showAlert } from '../utils/alert';
 import { formatCurrency } from '../utils/format';
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   splitProgressRemaining: {
     ...typography.bodySm,
     color: colors.primary,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   progressTrack: {
     height: 8,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   personChipText: {
     ...typography.caption,
     color: colors.textMuted,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   sectionTitle: {
     ...typography.h3,

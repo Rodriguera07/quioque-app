@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { OrderItemRow } from '../components/OrderItemRow';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
 import { PAYMENT_LABELS } from '../utils/payments';
 
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   paymentLabel: {
     ...typography.bodySm,
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
   paymentTime: {
     ...typography.caption,
@@ -241,6 +241,6 @@ const styles = StyleSheet.create({
   paymentValue: {
     ...typography.body,
     color: colors.emerald,
-    fontWeight: '700',
+    fontFamily: nunitoFontFamily.bold,
   },
 });
