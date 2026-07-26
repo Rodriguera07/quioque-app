@@ -194,14 +194,16 @@ export function setUserPushToken(orgId: string, uid: string, expoPushToken: stri
   return updateDoc(doc(orgUsersCol(orgId), uid), { expoPushToken });
 }
 
-// Tokens dos admins ativos da org, exceto quem disparou a ação (não faz
-// sentido notificar o próprio admin sobre algo que ele mesmo fez).
-export async function getAdminPushTokens(orgId: string, excludeUid?: string): Promise<string[]> {
+// Tokens de todos os admins ativos da org. Inclui propositalmente quem
+// disparou a ação: numa organização pequena o admin frequentemente também
+// opera o caixa, e excluí-lo fazia a notificação nunca sair quando ele era o
+// único admin cadastrado.
+export async function getAdminPushTokens(orgId: string): Promise<string[]> {
   const q = query(orgUsersCol(orgId), where('role', '==', 'admin'), where('active', '==', true));
   const snap = await getDocs(q);
   return snap.docs
     .map((d) => d.data() as UserProfile)
-    .filter((u) => u.uid !== excludeUid && !!u.expoPushToken)
+    .filter((u) => !!u.expoPushToken)
     .map((u) => u.expoPushToken as string);
 }
 

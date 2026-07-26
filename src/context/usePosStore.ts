@@ -128,12 +128,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       tableId: id,
       tableLabel: trimmedLabel,
     });
-    notifyAdmins(
-      orgId,
-      currentUser.uid,
-      'Mesa aberta',
-      `${currentUser.displayName} abriu a mesa ${trimmedLabel}.`
-    );
+    notifyAdmins(orgId, 'Mesa aberta', `${currentUser.displayName} abriu a mesa ${trimmedLabel}.`);
 
     return id;
   },
@@ -178,7 +173,6 @@ export const usePosStore = create<PosState>((set, get) => ({
     });
     notifyAdmins(
       orgId,
-      currentUser.uid,
       'Itens adicionados',
       `${currentUser.displayName} adicionou ${quantity}x ${menuItem.name} na mesa ${table.label}.`
     );
@@ -283,7 +277,6 @@ export const usePosStore = create<PosState>((set, get) => ({
     });
     notifyAdmins(
       orgId,
-      currentUser.uid,
       'Pagamento registrado',
       `${currentUser.displayName} registrou ${PAYMENT_METHOD_LABEL[method]} (R$ ${amount.toFixed(2)}) na mesa ${table.label}.`
     );
@@ -310,12 +303,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         tableId,
         tableLabel: table.label,
       });
-      notifyAdmins(
-        orgId,
-        currentUser.uid,
-        'Mesa fechada',
-        `${currentUser.displayName} fechou a mesa ${table.label}.`
-      );
+      notifyAdmins(orgId, 'Mesa fechada', `${currentUser.displayName} fechou a mesa ${table.label}.`);
     }
 
     return result;

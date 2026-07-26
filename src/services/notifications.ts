@@ -49,15 +49,10 @@ export async function registerForPushNotificationsAsync(
 }
 
 // Envia direto para a API do Expo Push (sem backend próprio) para todo
-// admin ativo da organização, exceto quem disparou a ação.
-export async function notifyAdmins(
-  orgId: string,
-  actorUid: string,
-  title: string,
-  body: string
-): Promise<void> {
+// admin ativo da organização.
+export async function notifyAdmins(orgId: string, title: string, body: string): Promise<void> {
   try {
-    const tokens = await getAdminPushTokens(orgId, actorUid);
+    const tokens = await getAdminPushTokens(orgId);
     if (tokens.length === 0) return;
 
     await fetch('https://exp.host/--/api/v2/push/send', {
