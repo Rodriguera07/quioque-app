@@ -32,6 +32,9 @@
     "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "expo-font": "~14.0.12"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
