@@ -1,6 +1,7 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ActivityIndicator, PressableProps, StyleSheet, Text, ViewStyle } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { ActivityIndicator, PressableProps, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { coloredShadow, colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { AnimatedPressable } from './AnimatedPressable';
 
 type Variant = 'primary' | 'emerald' | 'outline' | 'ghost' | 'danger';
@@ -36,64 +37,74 @@ export function Button({
       style={[
         styles.base,
         size === 'lg' ? styles.lg : styles.md,
-        variantStyle.container,
+        variantStyle.shadow,
+        variantStyle.flatContainer,
         fullWidth && styles.fullWidth,
         style,
       ]}
       {...rest}
     >
+      {variantStyle.gradient && (
+        <LinearGradient
+          colors={variantStyle.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      )}
       {loading ? (
         <ActivityIndicator color={variantStyle.text.color as string} />
       ) : (
-        <>
+        <View style={styles.content}>
           {icon}
           <Text style={[styles.label, variantStyle.text, icon ? { marginLeft: spacing.xs } : null]}>
             {label}
           </Text>
-        </>
+        </View>
       )}
     </AnimatedPressable>
   );
 }
 
-const variantStyles: Record<Variant, { container: ViewStyle; text: { color: string } }> = {
+interface VariantStyle {
+  gradient?: [string, string];
+  flatContainer: ViewStyle;
+  shadow: ViewStyle;
+  text: { color: string };
+}
+
+const variantStyles: Record<Variant, VariantStyle> = {
   primary: {
-    container: {
-      backgroundColor: colors.primary,
-      shadowColor: colors.primary,
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
-    },
+    gradient: [colors.primary, '#0A7186'],
+    flatContainer: {},
+    shadow: coloredShadow(colors.primary),
     text: { color: colors.white },
   },
   emerald: {
-    container: {
-      backgroundColor: colors.emerald,
-      shadowColor: colors.emerald,
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
-    },
+    gradient: [colors.emerald, '#0B8871'],
+    flatContainer: {},
+    shadow: coloredShadow(colors.emerald),
     text: { color: colors.textInverse },
   },
+  danger: {
+    gradient: [colors.danger, '#C22E45'],
+    flatContainer: {},
+    shadow: coloredShadow(colors.danger),
+    text: { color: colors.white },
+  },
   outline: {
-    container: {
+    flatContainer: {
       backgroundColor: 'transparent',
       borderWidth: 1.5,
       borderColor: colors.borderLight,
     },
+    shadow: {},
     text: { color: colors.textPrimary },
   },
   ghost: {
-    container: { backgroundColor: colors.surfaceHighlight },
+    flatContainer: { backgroundColor: colors.surfaceHighlight },
+    shadow: {},
     text: { color: colors.textPrimary },
-  },
-  danger: {
-    container: { backgroundColor: colors.danger },
-    text: { color: colors.white },
   },
 };
 
@@ -103,6 +114,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   md: {
     paddingVertical: spacing.sm,
@@ -117,5 +134,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.h3,
+    fontFamily: nunitoFontFamily.bold,
+    letterSpacing: 0.2,
   },
 });

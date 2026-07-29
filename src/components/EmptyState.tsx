@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, spacing, typography } from '../theme';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -12,9 +13,14 @@ interface Props {
 export function EmptyState({ icon, title, subtitle }: Props) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.iconWrap}>
+      <LinearGradient
+        colors={[colors.surfaceHighlight, colors.surface]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={styles.iconWrap}
+      >
         <Ionicons name={icon} size={26} color={colors.textMuted} />
-      </View>
+      </LinearGradient>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -28,18 +34,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
   title: {
     ...typography.h3,
+    fontFamily: nunitoFontFamily.bold,
     color: colors.textSecondary,
   },
   subtitle: {

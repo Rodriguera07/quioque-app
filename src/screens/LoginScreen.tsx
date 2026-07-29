@@ -1,19 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
+import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
+import { LegalDocument } from '../components/LegalDocument';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
+import { WaveDivider } from '../components/WaveDivider';
+import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
@@ -26,6 +34,32 @@ const AWNING_COLORS = [
   colors.sand,
   colors.surface,
 ];
+
+// Mesma paleta "sol se pondo sobre o mar" do ícone do app e do cartão "Caixa
+// do Dia" do Dashboard — reaproveitada aqui para a ilustração de boas-vindas
+// ficar visualmente coerente com o resto do produto.
+const HERO = {
+  gradientStart: '#10938B',
+  gradientEnd: '#0A5551',
+  ambientGlow: 'rgba(255,207,143,0.3)',
+};
+
+const FEATURES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { icon: 'flash-outline', label: 'Tempo real' },
+  { icon: 'bar-chart-outline', label: 'Relatórios' },
+  { icon: 'people-outline', label: 'Equipe' },
+];
+
+const WELCOME_COPY: Record<Mode, { title: string; subtitle: string }> = {
+  login: {
+    title: 'Bem-vindo de volta',
+    subtitle: 'Entre para acompanhar mesas, vendas e sua equipe em tempo real.',
+  },
+  signup: {
+    title: 'Vamos começar',
+    subtitle: 'Crie sua conta e organize seu quiosque em poucos minutos.',
+  },
+};
 
 type Mode = 'login' | 'signup';
 
@@ -42,10 +76,14 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
   const { contentStyle } = useResponsiveContent(440);
 
   const enter = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
+  const heroFloat = useRef(new Animated.Value(0)).current;
+  const introFade = useRef(new Animated.Value(0)).current;
+  const indicatorAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(enter, {
@@ -54,6 +92,45 @@ export function LoginScreen() {
       useNativeDriver: true,
     }).start();
   }, [enter]);
+
+  // Ilustração do topo flutua suavemente sem parar — dá vida à tela sem
+  // disputar atenção com o formulário.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(heroFloat, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(heroFloat, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [heroFloat]);
+
+  // Saudação e indicador da aba reagem à troca de modo (login/cadastro) com
+  // um leve fade e um pill que desliza, em vez de trocar de estado seco.
+  useEffect(() => {
+    introFade.setValue(0);
+    Animated.timing(introFade, { toValue: 1, duration: 380, useNativeDriver: true }).start();
+  }, [mode, introFade]);
+
+  useEffect(() => {
+    Animated.spring(indicatorAnim, {
+      toValue: mode === 'login' ? 0 : 1,
+      useNativeDriver: false,
+      speed: 16,
+      bounciness: 8,
+    }).start();
+  }, [mode, indicatorAnim]);
 
   const runShake = () => {
     shake.setValue(0);
@@ -127,6 +204,9 @@ export function LoginScreen() {
       { translateX: shake.interpolate({ inputRange: [-1, 1], outputRange: [-8, 8] }) },
     ],
   };
+  const heroFloatY = heroFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
+  const indicatorLeft = indicatorAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '50%'] });
+  const welcome = WELCOME_COPY[mode];
 
   return (
     <KeyboardAvoidingView
@@ -146,30 +226,56 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Animated.View style={[styles.brandWrap, brandStyle]}>
+            <View style={styles.heroBanner}>
+              <LinearGradient
+                colors={[HERO.gradientStart, HERO.gradientEnd]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.heroAmbientGlow} pointerEvents="none" />
+              <View style={styles.heroContent} pointerEvents="none">
+                <Animated.View style={{ transform: [{ translateY: heroFloatY }] }}>
+                  <BeachUmbrellaIcon size={60} color={colors.white} />
+                </Animated.View>
+              </View>
+              <View style={styles.heroWaveWrap} pointerEvents="none">
+                <WaveDivider fill={colors.background} stroke="rgba(255,255,255,0.45)" />
+              </View>
+            </View>
+
             <Text style={styles.brandTop}>QUIOSQUE</Text>
             <View style={styles.brandBottomRow}>
               <View style={styles.brandLine} />
               <Text style={styles.brandBottom}>PDV</Text>
               <View style={styles.brandLine} />
             </View>
-            <Text style={styles.brandSub}>Painel do gerente</Text>
+
+            <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
+              <Text style={styles.brandSub}>{welcome.title}</Text>
+              <Text style={styles.brandIntro}>{welcome.subtitle}</Text>
+            </Animated.View>
+
+            <View style={styles.featureRow}>
+              {FEATURES.map((f) => (
+                <View key={f.label} style={styles.featureBadge}>
+                  <Ionicons name={f.icon} size={13} color={colors.emerald} />
+                  <Text style={styles.featureBadgeText}>{f.label}</Text>
+                </View>
+              ))}
+            </View>
           </Animated.View>
 
           <Animated.View style={cardStyle}>
             <View style={styles.card}>
               <View style={styles.modeSwitch}>
-                <AnimatedPressable
-                  style={[styles.modeTab, mode === 'login' && styles.modeTabActive]}
-                  onPress={() => switchMode('login')}
-                >
+                <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]} />
+                <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('login')}>
                   <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
                     Entrar
                   </Text>
                 </AnimatedPressable>
-                <AnimatedPressable
-                  style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
-                  onPress={() => switchMode('signup')}
-                >
+                <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('signup')}>
                   <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
                     Cadastrar
                   </Text>
@@ -321,10 +427,46 @@ export function LoginScreen() {
                   <Ionicons name="arrow-forward" size={19} color={colors.textInverse} />
                 ) : null}
               </AnimatedPressable>
+
+              <Text style={styles.legalText}>
+                Ao continuar, você concorda com o{' '}
+                <Text style={styles.legalLink} onPress={() => setLegalDoc('terms')}>
+                  Termo de Uso
+                </Text>{' '}
+                e a{' '}
+                <Text style={styles.legalLink} onPress={() => setLegalDoc('privacy')}>
+                  Política de Privacidade
+                </Text>
+                .
+              </Text>
             </View>
             <ReceiptTornEdge />
           </Animated.View>
         </ScrollView>
+
+        <Modal
+          visible={legalDoc !== null}
+          animationType="slide"
+          onRequestClose={() => setLegalDoc(null)}
+        >
+          <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
+            <View style={styles.legalModalHeader}>
+              <Text style={styles.legalModalTitle}>
+                {legalDoc === 'privacy' ? PRIVACY_POLICY.title : TERMS_OF_USE.title}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setLegalDoc(null)}
+                style={styles.legalCloseBtn}
+                accessibilityLabel="Fechar"
+              >
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            {legalDoc ? (
+              <LegalDocument doc={legalDoc === 'privacy' ? PRIVACY_POLICY : TERMS_OF_USE} />
+            ) : null}
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -348,6 +490,40 @@ const styles = StyleSheet.create({
   brandWrap: {
     alignItems: 'center',
     marginBottom: spacing.xxl,
+  },
+  heroBanner: {
+    position: 'relative',
+    width: '100%',
+    height: 132,
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
+    shadowColor: HERO.gradientEnd,
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+    marginBottom: spacing.md,
+  },
+  heroAmbientGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: HERO.ambientGlow,
+  },
+  heroContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroWaveWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 22,
   },
   brandTop: {
     ...typography.display,
@@ -373,9 +549,39 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   brandSub: {
-    ...typography.body,
+    ...typography.h3,
+    fontFamily: nunitoFontFamily.extraBold,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  brandIntro: {
+    ...typography.bodySm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 3,
+    maxWidth: 300,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  featureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.emeraldMuted,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+  },
+  featureBadgeText: {
+    ...typography.caption,
+    fontFamily: nunitoFontFamily.bold,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   card: {
     backgroundColor: colors.surfaceElevated,
@@ -388,25 +594,31 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   modeSwitch: {
+    position: 'relative',
     flexDirection: 'row',
     backgroundColor: colors.surfaceHighlight,
     borderRadius: radius.full,
     padding: 4,
     marginBottom: spacing.lg,
   },
-  modeTab: {
-    flex: 1,
-    paddingVertical: spacing.xs,
+  modeIndicator: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    width: '50%',
     borderRadius: radius.full,
-    alignItems: 'center',
-  },
-  modeTabActive: {
     backgroundColor: colors.sand,
     shadowColor: colors.sand,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    alignItems: 'center',
   },
   modeTabText: {
     ...typography.bodySm,
@@ -477,5 +689,38 @@ const styles = StyleSheet.create({
   enterBtnText: {
     ...typography.h3,
     color: colors.textInverse,
+  },
+  legalText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 17,
+    marginTop: spacing.md,
+  },
+  legalLink: {
+    color: colors.primary,
+    fontFamily: nunitoFontFamily.bold,
+  },
+  legalModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  legalModalTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+  },
+  legalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
@@ -15,6 +15,7 @@ import { useAuthStore } from '../context/useAuthStore';
 import {
   getClosedTablesToday,
   getOpenTables,
+  getTableCurrentTotal,
   getTodayRevenue,
   getTopSellingItems,
   usePosStore,
@@ -75,6 +76,49 @@ export function DashboardScreen({ navigation }: Props) {
   const [notifSeenAt, setNotifSeenAt] = useState(() => new Date().toISOString());
   const [yesterdayRevenue, setYesterdayRevenue] = useState<number | null>(null);
 
+  // FAB "Abrir mesa": leve flutuação contínua + anel de brilho pulsante, para
+  // reforçar que é a ação primária da tela sem depender só da cor.
+  const fabPulse = useRef(new Animated.Value(0)).current;
+  const fabFloat = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabPulse, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabPulse, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabFloat, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabFloat, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+    floatLoop.start();
+    return () => {
+      pulseLoop.stop();
+      floatLoop.stop();
+    };
+  }, [fabPulse, fabFloat]);
+  const fabPulseScale = fabPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
+  const fabPulseOpacity = fabPulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
+  const fabFloatY = fabFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+
   const userName = useAuthStore((s) => s.user?.displayName ?? null);
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const logout = useAuthStore((s) => s.logout);
@@ -87,6 +131,7 @@ export function DashboardScreen({ navigation }: Props) {
   const openTables = getOpenTables(tables);
   const closedTables = getClosedTablesToday(tables);
   const revenue = getTodayRevenue(closedSalesToday);
+  const openTablesTotal = openTables.reduce((sum, t) => sum + getTableCurrentTotal(t), 0);
   const topItems = getTopSellingItems(tables, closedSalesToday, TOP_ITEMS_COUNT);
   const topMax = topItems[0]?.quantity ?? 1;
 
@@ -341,16 +386,24 @@ export function DashboardScreen({ navigation }: Props) {
               </Text>
             </View>
           ) : (
-            <View style={styles.tablesGrid}>
-              {openTables.map((table) => (
-                <TableCard
-                  key={table.id}
-                  table={table}
-                  style={{ width: tableCardWidth }}
-                  onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
-                />
-              ))}
-            </View>
+            <>
+              <View style={styles.openTotalRow}>
+                <Text style={styles.openTotalLabel}>Valor em aberto (mesas + consumação)</Text>
+                <Text style={styles.openTotalValue}>
+                  R$ {openTablesTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+              <View style={styles.tablesGrid}>
+                {openTables.map((table) => (
+                  <TableCard
+                    key={table.id}
+                    table={table}
+                    style={{ width: tableCardWidth }}
+                    onPress={() => navigation.navigate('TableDetail', { tableId: table.id })}
+                  />
+                ))}
+              </View>
+            </>
           )}
         </View>
       </View>
@@ -370,20 +423,29 @@ export function DashboardScreen({ navigation }: Props) {
 
       </ScrollView>
 
-      <AnimatedPressable
-        style={styles.fabWrap}
-        accessibilityLabel="Abrir nova mesa"
-        onPress={() => navigation.navigate('OpenTable')}
-      >
-        <LinearGradient
-          colors={['#FFAF5C', HERO.sun600]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
+      <Animated.View style={[styles.fabWrap, { transform: [{ translateY: fabFloatY }] }]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.fabGlow,
+            { opacity: fabPulseOpacity, transform: [{ scale: fabPulseScale }] },
+          ]}
+        />
+        <AnimatedPressable
           style={styles.fab}
+          accessibilityLabel="Abrir nova mesa"
+          onPress={() => navigation.navigate('OpenTable')}
         >
-          <Ionicons name="add" size={26} color={colors.white} />
-        </LinearGradient>
-      </AnimatedPressable>
+          <LinearGradient
+            colors={['#FFAF5C', HERO.sun600]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Ionicons name="add" size={26} color={colors.white} />
+          </LinearGradient>
+        </AnimatedPressable>
+      </Animated.View>
 
       <ConfirmModal
         visible={endDayDialog === 'blocked-open'}
@@ -930,6 +992,27 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.md,
   },
+  openTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  openTotalLabel: {
+    fontFamily: nunitoFontFamily.bold,
+    fontSize: 12,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  openTotalValue: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 15,
+    color: HERO.seaTeal700,
+  },
   closeDay: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -969,13 +1052,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing.lg,
     bottom: spacing.xxxl + spacing.lg,
+    width: 60,
+    height: 60,
+  },
+  fabGlow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: HERO.sun600,
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
     shadowColor: HERO.sun600,
     shadowOpacity: 0.44,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  fab: {
+  fabGradient: {
     width: 60,
     height: 60,
     borderRadius: 20,

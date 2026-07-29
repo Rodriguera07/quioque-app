@@ -30,18 +30,23 @@ export function OrderItemRow({ item, editable = true, onIncrement, onDecrement, 
       {editable ? (
         <View style={styles.stepper}>
           <TouchableOpacity
-            style={styles.stepBtn}
+            style={[styles.stepBtn, item.quantity === 1 && styles.stepBtnDanger]}
             onPress={item.quantity === 1 ? onRemove : onDecrement}
+            accessibilityLabel={item.quantity === 1 ? 'Remover item' : 'Diminuir quantidade'}
           >
             <Ionicons
               name={item.quantity === 1 ? 'trash-outline' : 'remove'}
-              size={15}
+              size={14}
               color={item.quantity === 1 ? colors.danger : colors.textPrimary}
             />
           </TouchableOpacity>
           <Text style={styles.qty}>{item.quantity}</Text>
-          <TouchableOpacity style={styles.stepBtn} onPress={onIncrement}>
-            <Ionicons name="add" size={15} color={colors.textPrimary} />
+          <TouchableOpacity
+            style={[styles.stepBtn, styles.stepBtnAdd]}
+            onPress={onIncrement}
+            accessibilityLabel="Aumentar quantidade"
+          >
+            <Ionicons name="add" size={14} color={colors.emerald} />
           </TouchableOpacity>
         </View>
       ) : (
@@ -86,21 +91,26 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: 4,
   },
   stepBtn: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.surfaceHighlight,
+  },
+  stepBtnDanger: {
+    backgroundColor: colors.dangerMuted,
+  },
+  stepBtnAdd: {
+    backgroundColor: colors.emeraldMuted,
   },
   qty: {
     ...typography.h3,
     color: colors.textPrimary,
-    minWidth: 20,
+    minWidth: 22,
     textAlign: 'center',
   },
   qtyStatic: {

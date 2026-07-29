@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '../theme';
+import { colors, radius, shadows, spacing } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -24,5 +24,7 @@ const styles = StyleSheet.create({
   },
   elevated: {
     backgroundColor: colors.surfaceElevated,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
   },
 });
