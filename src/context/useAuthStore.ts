@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -14,6 +15,7 @@ import { create } from 'zustand';
 import { auth, db } from '../config/firebase';
 import { usePosStore } from './usePosStore';
 import { logAuditEvent } from '../services/auditLog';
+import { countActiveAdmins, deleteOwnAccountData } from '../services/firestoreOrg';
 import { UserProfile } from '../types';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -33,6 +35,11 @@ interface AuthState {
     currentPassword: string,
     newPassword: string
   ) => Promise<{ ok: boolean; error?: string }>;
+  // Quantos admins ativos restariam na organização se a conta atual fosse
+  // excluída agora — usado para alertar quem está prestes a excluir a
+  // própria conta sendo o único admin.
+  getRemainingAdminCount: () => Promise<number | null>;
+  deleteAccount: (password: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 // Ponteiro global uid -> { orgId, role } em `users/{uid}`.
@@ -114,6 +121,22 @@ function friendlyChangePasswordError(code: string): string {
       return 'Sem conexão com a internet.';
     default:
       return 'Não foi possível trocar a senha. Tente novamente.';
+  }
+}
+
+function friendlyDeleteAccountError(code: string): string {
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+      return 'Senha incorreta.';
+    case 'auth/too-many-requests':
+      return 'Muitas tentativas. Aguarde um instante e tente novamente.';
+    case 'auth/requires-recent-login':
+      return 'Por segurança, saia e entre novamente antes de excluir a conta.';
+    case 'auth/network-request-failed':
+      return 'Sem conexão com a internet.';
+    default:
+      return 'Não foi possível excluir a conta. Tente novamente.';
   }
 }
 
@@ -259,6 +282,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return { ok: true };
     } catch (err: any) {
       return { ok: false, error: friendlyChangePasswordError(err?.code ?? '') };
+    }
+  },
+
+  getRemainingAdminCount: async () => {
+    const { user } = get();
+    if (!user || user.role !== 'admin') return null;
+    try {
+      const total = await countActiveAdmins(user.orgId);
+      return Math.max(0, total - 1);
+    } catch {
+      return null;
+    }
+  },
+
+  // Exclusão de conta pelo próprio usuário: reautentica por segurança, apaga
+  // o perfil da organização e o ponteiro global, registra o evento (antes de
+  // apagar, enquanto o perfil ainda existe para a regra de auditoria) e por
+  // último remove a conta do Firebase Auth.
+  deleteAccount: async (password) => {
+    const { user } = get();
+    const firebaseUser = auth.currentUser;
+    if (!user || !firebaseUser) {
+      return { ok: false, error: 'Sessão inválida. Entre novamente.' };
+    }
+    try {
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(firebaseUser, credential);
+
+      await logAuditEvent({
+        orgId: user.orgId,
+        userId: user.uid,
+        userName: user.displayName,
+        type: 'account_deleted',
+      });
+
+      await deleteOwnAccountData(user.orgId, user.uid);
+
+      profileUnsubscribe?.();
+      profileUnsubscribe = null;
+      usePosStore.getState().teardownOrgSync();
+
+      await deleteUser(firebaseUser);
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: friendlyDeleteAccountError(err?.code ?? '') };
     }
   },
 }));

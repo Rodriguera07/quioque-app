@@ -34,7 +34,9 @@ service cloud.firestore {
         || (isSignedIn() && request.auth.uid == uid
             && request.resource.data.role == 'admin'
             && get(/databases/$(database)/documents/organizations/$(request.resource.data.orgId)).data.ownerId == request.auth.uid);
-      allow update, delete: if false;
+      allow update: if false;
+      // Exclusão de conta pelo próprio usuário (LGPD, direito de eliminação).
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     match /organizations/{orgId} {
@@ -78,7 +80,8 @@ service cloud.firestore {
           && !('role' in request.resource.data.diff(resource.data).affectedKeys()))
         || (isSignedIn() && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expoPushToken']));
-      allow delete: if false;
+      // Exclusão de conta pelo próprio usuário (LGPD, direito de eliminação).
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // Mesas — quadro ao vivo do dia. Qualquer membro opera mesas no dia a
@@ -113,6 +116,14 @@ service cloud.firestore {
     // Rollups diários usados pelos Relatórios — só são gravados pelo
     // encerramento do dia, uma ação exclusiva de admin.
     match /organizations/{orgId}/daySummaries/{date} {
+      allow read: if isOrgMember(orgId);
+      allow create, update: if isOrgAdmin(orgId);
+      allow delete: if false;
+    }
+
+    // Cardápio — qualquer membro lê (precisa pra lançar pedidos), só admin
+    // edita (adicionar/remover itens, alterar valores).
+    match /organizations/{orgId}/config/{docId} {
       allow read: if isOrgMember(orgId);
       allow create, update: if isOrgAdmin(orgId);
       allow delete: if false;
