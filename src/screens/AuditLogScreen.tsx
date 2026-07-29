@@ -58,6 +58,18 @@ const EVENT_META: Record<
     color: colors.primary,
     muted: colors.primaryMuted,
   },
+  account_deleted: {
+    label: 'Excluiu a própria conta',
+    icon: 'trash-outline',
+    color: colors.danger,
+    muted: colors.dangerMuted,
+  },
+  menu_updated: {
+    label: 'Atualizou o cardápio',
+    icon: 'fast-food-outline',
+    color: colors.sand,
+    muted: colors.sandMuted,
+  },
 };
 
 const FILTERS: { key: AuditEventType | 'all' | 'password'; label: string }[] = [
@@ -130,6 +142,7 @@ export function AuditLogScreen({ navigation }: Props) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
         contentContainerStyle={styles.filterRow}
       >
         {FILTERS.map((f) => (
@@ -225,7 +238,12 @@ const styles = StyleSheet.create({
     ...typography.h2,
     color: colors.textPrimary,
   },
+  filterScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   filterRow: {
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     gap: spacing.xs,
     paddingBottom: spacing.md,

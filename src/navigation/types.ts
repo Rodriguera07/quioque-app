@@ -13,8 +13,12 @@ export type RootStackParamList = {
   ClosedTablesHistory: undefined;
   ClosedTableDetail: { sale: ClosedSale };
   UserManagement: undefined;
+  MenuManagement: undefined;
   AuditLog: undefined;
   ChangePassword: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfUse: undefined;
+  DeleteAccount: undefined;
 };
 
 export type DrawerParamList = {

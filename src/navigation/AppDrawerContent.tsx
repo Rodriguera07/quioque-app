@@ -25,9 +25,9 @@ interface DrawerItem {
   color: string;
   muted: string;
   adminOnly?: boolean;
-  // Aparece na seção "Administração" para qualquer papel (não restrito a
-  // admin), diferente de `adminOnly` que só admins veem.
-  accountSection?: boolean;
+  // Entra na seção "Configurações" (conta, privacidade, dados), visível a
+  // qualquer papel — diferente de `adminOnly`, exclusivo de admin.
+  settingsSection?: boolean;
 }
 
 const NAV_ITEMS: DrawerItem[] = [
@@ -49,6 +49,14 @@ const NAV_ITEMS: DrawerItem[] = [
     adminOnly: true,
   },
   {
+    key: 'MenuManagement',
+    label: 'Cardápio',
+    icon: 'fast-food-outline',
+    color: colors.sand,
+    muted: colors.sandMuted,
+    adminOnly: true,
+  },
+  {
     key: 'AuditLog',
     label: 'Log de Auditoria',
     icon: 'document-text-outline',
@@ -62,7 +70,31 @@ const NAV_ITEMS: DrawerItem[] = [
     icon: 'key-outline',
     color: colors.primary,
     muted: colors.primaryMuted,
-    accountSection: true,
+    settingsSection: true,
+  },
+  {
+    key: 'PrivacyPolicy',
+    label: 'Política de Privacidade',
+    icon: 'shield-checkmark-outline',
+    color: colors.emerald,
+    muted: colors.emeraldMuted,
+    settingsSection: true,
+  },
+  {
+    key: 'TermsOfUse',
+    label: 'Termo de Uso',
+    icon: 'document-text-outline',
+    color: colors.sand,
+    muted: colors.sandMuted,
+    settingsSection: true,
+  },
+  {
+    key: 'DeleteAccount',
+    label: 'Excluir Minha Conta',
+    icon: 'trash-outline',
+    color: colors.danger,
+    muted: colors.dangerMuted,
+    settingsSection: true,
   },
 ];
 
@@ -159,14 +191,13 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
 
   const activeRouteName = getActiveInnerRouteName(state);
   const initial = (user?.displayName ?? 'U').charAt(0).toUpperCase();
-  const mainItems = NAV_ITEMS.filter((item) => !item.adminOnly && !item.accountSection);
-  // "Administração" reúne o que é exclusivo de admin (só aparece pra quem é
-  // admin) e o que é da própria conta (ex.: trocar senha), que qualquer
-  // papel pode ver — por isso a seção nunca fica vazia.
-  const adminItems = NAV_ITEMS.filter(
-    (item) => item.accountSection || (item.adminOnly && user?.role === 'admin')
-  );
-  const totalStagger = mainItems.length + adminItems.length + 1;
+  const mainItems = NAV_ITEMS.filter((item) => !item.adminOnly && !item.settingsSection);
+  // "Administração" é exclusiva de quem é admin (gestão de usuários, log de
+  // auditoria) — some da tela para a equipe. "Configurações" reúne conta,
+  // privacidade e dados, e aparece para qualquer papel.
+  const adminItems = NAV_ITEMS.filter((item) => item.adminOnly && user?.role === 'admin');
+  const settingsItems = NAV_ITEMS.filter((item) => item.settingsSection);
+  const totalStagger = mainItems.length + adminItems.length + settingsItems.length + 1;
   const headerStyle = useStaggerStyle(-1, totalStagger);
 
   const navigateTo = (key: NoParamRoute) => {
@@ -245,6 +276,29 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
                     key={item.key}
                     item={item}
                     index={mainItems.length + index + 2}
+                    total={totalStagger}
+                    active={activeRouteName === item.key}
+                    onPress={() => navigateTo(item.key)}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          {settingsItems.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <SectionLabel
+                label="Configurações"
+                index={mainItems.length + adminItems.length + 1}
+                total={totalStagger}
+              />
+              <View style={{ gap: spacing.xxs, marginTop: spacing.xxs }}>
+                {settingsItems.map((item, index) => (
+                  <DrawerNavRow
+                    key={item.key}
+                    item={item}
+                    index={mainItems.length + adminItems.length + index + 2}
                     total={totalStagger}
                     active={activeRouteName === item.key}
                     onPress={() => navigateTo(item.key)}

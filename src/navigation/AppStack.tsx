@@ -8,10 +8,14 @@ import { CloseTableScreen } from '../screens/CloseTableScreen';
 import { ClosedTableDetailScreen } from '../screens/ClosedTableDetailScreen';
 import { ClosedTablesHistoryScreen } from '../screens/ClosedTablesHistoryScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
+import { DeleteAccountScreen } from '../screens/DeleteAccountScreen';
 import { EndDaySummaryScreen } from '../screens/EndDaySummaryScreen';
+import { MenuManagementScreen } from '../screens/MenuManagementScreen';
 import { OpenTableScreen } from '../screens/OpenTableScreen';
+import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { TableDetailScreen } from '../screens/TableDetailScreen';
+import { TermsOfUseScreen } from '../screens/TermsOfUseScreen';
 import { UserManagementScreen } from '../screens/UserManagementScreen';
 import { colors } from '../theme';
 import { RootStackParamList } from './types';
@@ -57,8 +61,12 @@ export function AppStack() {
       <Stack.Screen name="ClosedTablesHistory" component={ClosedTablesHistoryScreen} />
       <Stack.Screen name="ClosedTableDetail" component={ClosedTableDetailScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+      <Stack.Screen name="MenuManagement" component={MenuManagementScreen} />
       <Stack.Screen name="AuditLog" component={AuditLogScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+      <Stack.Screen name="TermsOfUse" component={TermsOfUseScreen} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
     </Stack.Navigator>
   );
 }
