@@ -11,6 +11,11 @@ export interface MenuItem {
   image?: ImageSourcePropType;
 }
 
+// Formato persistido no Firestore: sem `image`, já que `require()` de asset
+// vira um id de módulo do bundler (não faz sentido salvo fora do app) — a
+// imagem é sempre resolvida localmente a partir do catálogo padrão, por id.
+export type MenuItemInput = Omit<MenuItem, 'image'>;
+
 export interface OrderItem {
   id: string; // id único da linha no pedido
   menuItemId: string;
@@ -103,7 +108,9 @@ export type AuditEventType =
   | 'table_closed'
   | 'payment_recorded'
   | 'password_changed'
-  | 'password_reset_requested';
+  | 'password_reset_requested'
+  | 'account_deleted'
+  | 'menu_updated';
 
 export interface AuditLogEntry {
   id: string;

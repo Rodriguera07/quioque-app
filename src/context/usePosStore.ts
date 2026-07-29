@@ -1,9 +1,12 @@
 import { create } from 'zustand';
+import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS } from '../data/menu';
 import {
   clearClosedTablesAndSummarize,
   closeTableTransaction,
   newTableId,
+  saveMenu,
   subscribeClosedSalesSince,
+  subscribeMenu,
   subscribeTables,
   updateTable,
   setTable,
@@ -11,7 +14,16 @@ import {
 } from '../services/firestoreOrg';
 import { logAuditEvent } from '../services/auditLog';
 import { notifyAdmins } from '../services/notifications';
-import { ClosedSale, DaySummary, MenuItem, OrderItem, PaymentMethod, SplitPayment, Table } from '../types';
+import {
+  ClosedSale,
+  DaySummary,
+  MenuItem,
+  MenuItemInput,
+  OrderItem,
+  PaymentMethod,
+  SplitPayment,
+  Table,
+} from '../types';
 import {
   MAX_SPLIT_COUNT,
   MIN_SPLIT_COUNT,
@@ -43,12 +55,14 @@ interface CurrentUser {
 interface PosState {
   tables: Table[];
   closedSalesToday: ClosedSale[];
+  menuItems: MenuItem[];
   currentDay: string;
   orgId: string | null;
   currentUser: CurrentUser | null;
 
   initOrgSync: (orgId: string, user: CurrentUser) => void;
   teardownOrgSync: () => void;
+  saveMenuItems: (items: MenuItemInput[]) => Promise<boolean>;
 
   openTable: (label: string, waiterName?: string) => string;
   addItem: (tableId: string, menuItem: MenuItem, quantity?: number) => void;
@@ -63,12 +77,20 @@ interface PosState {
   endDay: () => Promise<DaySummary | null>;
 }
 
+// Enche `image` (require() de asset local) a partir do catálogo padrão, por
+// id — itens do Firestore nunca carregam imagem própria (ver MenuItemInput).
+function hydrateMenu(items: MenuItemInput[]): MenuItem[] {
+  return items.map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] }));
+}
+
 let tablesUnsubscribe: Unsubscribe | null = null;
 let closedSalesUnsubscribe: Unsubscribe | null = null;
+let menuUnsubscribe: Unsubscribe | null = null;
 
 export const usePosStore = create<PosState>((set, get) => ({
   tables: [],
   closedSalesToday: [],
+  menuItems: DEFAULT_MENU_ITEMS,
   currentDay: formatDateKey(),
   orgId: null,
   currentUser: null,
@@ -76,6 +98,7 @@ export const usePosStore = create<PosState>((set, get) => ({
   initOrgSync: (orgId, user) => {
     tablesUnsubscribe?.();
     closedSalesUnsubscribe?.();
+    menuUnsubscribe?.();
 
     set({ orgId, currentUser: user, currentDay: formatDateKey() });
 
@@ -88,14 +111,40 @@ export const usePosStore = create<PosState>((set, get) => ({
       startOfToday.toISOString(),
       (closedSalesToday) => set({ closedSalesToday })
     );
+
+    menuUnsubscribe = subscribeMenu(orgId, (items) => {
+      set({ menuItems: items ? hydrateMenu(items) : DEFAULT_MENU_ITEMS });
+    });
   },
 
   teardownOrgSync: () => {
     tablesUnsubscribe?.();
     closedSalesUnsubscribe?.();
+    menuUnsubscribe?.();
     tablesUnsubscribe = null;
     closedSalesUnsubscribe = null;
-    set({ tables: [], closedSalesToday: [], orgId: null, currentUser: null });
+    menuUnsubscribe = null;
+    set({ tables: [], closedSalesToday: [], menuItems: DEFAULT_MENU_ITEMS, orgId: null, currentUser: null });
+  },
+
+  saveMenuItems: async (items) => {
+    const { orgId, currentUser } = get();
+    if (!orgId) return false;
+    try {
+      await saveMenu(orgId, items);
+      if (currentUser) {
+        logAuditEvent({
+          orgId,
+          userId: currentUser.uid,
+          userName: currentUser.displayName,
+          type: 'menu_updated',
+        });
+      }
+      return true;
+    } catch (err) {
+      console.warn('[usePosStore] salvar cardápio', err);
+      return false;
+    }
   },
 
   openTable: (label, waiterName) => {

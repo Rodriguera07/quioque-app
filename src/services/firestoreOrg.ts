@@ -15,7 +15,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { AuditLogEntry, ClosedSale, PaymentMethod, Table, UserProfile } from '../types';
+import { AuditLogEntry, ClosedSale, MenuItemInput, PaymentMethod, Table, UserProfile } from '../types';
 import { computeTotals, isPaidInFull } from '../utils/billing';
 
 const tablesCol = (orgId: string) => collection(db, 'organizations', orgId, 'tables');
@@ -24,6 +24,7 @@ const orgUsersCol = (orgId: string) => collection(db, 'organizations', orgId, 'u
 const auditLogCol = (orgId: string) => collection(db, 'organizations', orgId, 'auditLog');
 const daySummaryDoc = (orgId: string, date: string) =>
   doc(db, 'organizations', orgId, 'daySummaries', date);
+const menuDoc = (orgId: string) => doc(db, 'organizations', orgId, 'config', 'menu');
 
 // Sem isso, um listener que cai (permissão revogada, doc apagado, conexão
 // instável) simplesmente para de atualizar a tela sem nenhum aviso — o app
@@ -205,6 +206,47 @@ export async function getAdminPushTokens(orgId: string): Promise<string[]> {
     .map((d) => d.data() as UserProfile)
     .filter((u) => !!u.expoPushToken)
     .map((u) => u.expoPushToken as string);
+}
+
+// Quantos admins ativos a organização tem — usado para avisar um admin que
+// está prestes a excluir a própria conta e ficaria sem ninguém para gerenciar
+// usuários/relatórios depois.
+export async function countActiveAdmins(orgId: string): Promise<number> {
+  const q = query(orgUsersCol(orgId), where('role', '==', 'admin'), where('active', '==', true));
+  const snap = await getDocs(q);
+  return snap.size;
+}
+
+// Exclusão de conta pelo próprio usuário (LGPD, direito de eliminação):
+// remove o perfil da organização e o ponteiro global uid -> org/role. O
+// registro de vendas/mesas fechadas em que ele aparece como autor NÃO é
+// apagado — é histórico financeiro do estabelecimento, mantido conforme a
+// Política de Privacidade.
+export function deleteOwnAccountData(orgId: string, uid: string): Promise<void> {
+  const batch = writeBatch(db);
+  batch.delete(doc(orgUsersCol(orgId), uid));
+  batch.delete(doc(db, 'users', uid));
+  return batch.commit();
+}
+
+// Cardápio: um único documento com a lista inteira, em vez de uma
+// subcoleção por item — a tela de gestão edita tudo localmente e grava de
+// uma vez só no "Salvar Cardápio", então não há motivo pra granularidade de
+// um doc por item. `null` significa "organização ainda não salvou o próprio
+// cardápio" (mostra o catálogo padrão local até o primeiro salvamento).
+export function subscribeMenu(
+  orgId: string,
+  cb: (items: MenuItemInput[] | null) => void
+): Unsubscribe {
+  return onSnapshot(
+    menuDoc(orgId),
+    (snap) => cb(snap.exists() ? (snap.data().items as MenuItemInput[]) : null),
+    logSnapshotError('menu')
+  );
+}
+
+export function saveMenu(orgId: string, items: MenuItemInput[]): Promise<void> {
+  return setDoc(menuDoc(orgId), { items, updatedAt: new Date().toISOString() });
 }
 
 export function subscribeAuditLog(

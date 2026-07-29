@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
-import { CATEGORY_ICONS, CATEGORY_LABELS, MENU_ITEMS } from '../data/menu';
+import { CATEGORY_ICONS, CATEGORY_LABELS } from '../data/menu';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
@@ -54,6 +54,7 @@ export function AddItemsScreen({ navigation, route }: Props) {
   const { contentStyle } = useResponsiveContent();
 
   const table = usePosStore((s) => s.tables.find((t) => t.id === tableId));
+  const menuItems = usePosStore((s) => s.menuItems);
   const addItem = usePosStore((s) => s.addItem);
   const incrementItem = usePosStore((s) => s.incrementItem);
   const decrementItem = usePosStore((s) => s.decrementItem);
@@ -61,12 +62,12 @@ export function AddItemsScreen({ navigation, route }: Props) {
 
   const filteredItems = useMemo(() => {
     const query = normalize(search.trim());
-    return MENU_ITEMS.filter((m) => {
+    return menuItems.filter((m) => {
       const matchesCategory = activeCategory === 'all' || m.category === activeCategory;
       const matchesSearch = query.length === 0 || normalize(m.name).includes(query);
       return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, search]);
+  }, [menuItems, activeCategory, search]);
 
   const totalItemsInCart = table?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
 
