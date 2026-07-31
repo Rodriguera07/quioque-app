@@ -63,7 +63,9 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'por-17', category: 'porcoes', name: 'Porção de Polenta Frita', price: 60 },
   { id: 'por-18', category: 'porcoes', name: 'Porção de Batata Frita (M)', price: 30, image: require('../../assets/menu/batata.jpg') },
   { id: 'por-19', category: 'porcoes', name: 'Porção de Batata Frita com Cheddar/Catupiry (M)', price: 40, image: require('../../assets/menu/batata.jpg') },
-  { id: 'por-20', category: 'porcoes', name: 'Porção de Calabresa (M)', price: 40, image: require('../../assets/menu/porcao-calabresa.jpg') },
+  { id: 'por-20', category: 'porcoes', name: 'Porção de Calabresa (M)', price: 30, image: require('../../assets/menu/porcao-calabresa.jpg') },
+  { id: 'por-21', category: 'porcoes', name: 'Porção de Polenta (M)', price: 30 },
+  { id: 'por-22', category: 'porcoes', name: 'Porção de Mandioca (M)', price: 30, image: require('../../assets/menu/porcao-mandioca.jpg') },
 
   // Pastéis
   { id: 'pas-1', category: 'pasteis', name: 'Porção de Mini Pastel (12 unidades)', price: 60, image: require('../../assets/menu/pastel.jpg') },
