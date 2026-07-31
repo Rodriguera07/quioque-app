@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { EmptyState } from '../components/EmptyState';
 import { OrderItemRow } from '../components/OrderItemRow';
 import {
@@ -13,12 +14,12 @@ import {
   getSplitUnitAmount,
   MAX_SPLIT_COUNT,
   MIN_SPLIT_COUNT,
-  SERVICE_FEE_RATE,
   usePosStore,
 } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { computeTotals } from '../utils/billing';
 import { formatCurrency, formatTime } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TableDetail'>;
@@ -32,7 +33,11 @@ export function TableDetailScreen({ navigation, route }: Props) {
   const toggleServiceFee = usePosStore((s) => s.toggleServiceFee);
   const toggleSplit = usePosStore((s) => s.toggleSplit);
   const setSplitCount = usePosStore((s) => s.setSplitCount);
+  const renameTable = usePosStore((s) => s.renameTable);
   const { contentStyle } = useResponsiveContent();
+
+  const [renameVisible, setRenameVisible] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   if (!table) {
     return (
@@ -43,13 +48,21 @@ export function TableDetailScreen({ navigation, route }: Props) {
   }
 
   const isOpen = table.status === 'open';
-  const subtotal = table.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const serviceFeeAmount = table.serviceFeeEnabled ? subtotal * SERVICE_FEE_RATE : 0;
-  const total = subtotal + serviceFeeAmount;
+  const { subtotal, serviceFeeAmount, total } = computeTotals(table.items, table.serviceFeeEnabled);
 
   const splitLocked = table.payments.length > 0;
   const paidCount = getPaidPeopleCount(table);
   const perPerson = getSplitUnitAmount(table);
+
+  const openRename = () => {
+    setRenameValue(table.label);
+    setRenameVisible(true);
+  };
+
+  const confirmRename = () => {
+    renameTable(tableId, renameValue);
+    setRenameVisible(false);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
@@ -62,7 +75,23 @@ export function TableDetailScreen({ navigation, route }: Props) {
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{table.label}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title} numberOfLines={1}>
+              {table.label}
+            </Text>
+            {isOpen && (
+              <AnimatedPressable
+                style={styles.renameBtn}
+                scaleTo={0.92}
+                onPress={openRename}
+                accessibilityLabel="Renomear ou trocar o número da mesa"
+                accessibilityRole="button"
+              >
+                <Ionicons name="create" size={14} color={colors.textInverse} />
+                <Text style={styles.renameBtnText}>Trocar mesa</Text>
+              </AnimatedPressable>
+            )}
+          </View>
           <Text style={styles.subtitle}>
             Aberta às {formatTime(table.openedAt)}
             {table.waiterName ? ` · ${table.waiterName}` : ''}
@@ -223,6 +252,25 @@ export function TableDetailScreen({ navigation, route }: Props) {
           />
         </View>
       )}
+
+      <ConfirmModal
+        visible={renameVisible}
+        icon="create-outline"
+        title="Renomear mesa"
+        message="Use quando o cliente trocar de mesa durante o atendimento."
+        confirmLabel="Salvar"
+        onConfirm={confirmRename}
+        onCancel={() => setRenameVisible(false)}
+      >
+        <TextInput
+          value={renameValue}
+          onChangeText={setRenameValue}
+          placeholder="Ex: Mesa 12"
+          placeholderTextColor={colors.textMuted}
+          style={styles.renameInput}
+          autoFocus
+        />
+      </ConfirmModal>
     </SafeAreaView>
   );
 }
@@ -245,9 +293,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   title: {
     ...typography.h2,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  renameBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.sand,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    shadowColor: colors.sand,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  renameBtnText: {
+    ...typography.caption,
+    fontFamily: nunitoFontFamily.bold,
+    color: colors.textInverse,
+  },
+  renameInput: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    height: 52,
+    marginTop: spacing.md,
+    ...typography.bodyLg,
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
   subtitle: {
     ...typography.bodySm,

@@ -28,6 +28,12 @@ const EVENT_META: Record<
     color: colors.emerald,
     muted: colors.emeraldMuted,
   },
+  table_renamed: {
+    label: 'Renomeou mesa',
+    icon: 'create-outline',
+    color: colors.sand,
+    muted: colors.sandMuted,
+  },
   items_added: {
     label: 'Adicionou itens',
     icon: 'fast-food-outline',
@@ -75,6 +81,7 @@ const EVENT_META: Record<
 const FILTERS: { key: AuditEventType | 'all' | 'password'; label: string }[] = [
   { key: 'all', label: 'Tudo' },
   { key: 'table_opened', label: 'Abriu mesa' },
+  { key: 'table_renamed', label: 'Renomeou mesa' },
   { key: 'items_added', label: 'Itens' },
   { key: 'table_closed', label: 'Fechou mesa' },
   { key: 'payment_recorded', label: 'Pagamento' },

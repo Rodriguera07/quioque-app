@@ -12,13 +12,13 @@ import {
   getPaidTotal,
   getRemainingAmount,
   PAID_EPSILON,
-  SERVICE_FEE_RATE,
   usePosStore,
 } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
 import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { showAlert } from '../utils/alert';
+import { computeTotals } from '../utils/billing';
 import { formatCurrency } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CloseTable'>;
@@ -51,9 +51,7 @@ export function CloseTableScreen({ navigation, route }: Props) {
   if (!table) return null;
 
   const hasConsumption = table.items.length > 0;
-  const subtotal = table.items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const serviceFeeAmount = table.serviceFeeEnabled ? subtotal * SERVICE_FEE_RATE : 0;
-  const total = subtotal + serviceFeeAmount;
+  const { subtotal, serviceFeeAmount, total } = computeTotals(table.items, table.serviceFeeEnabled);
 
   const isSplit = table.splitEnabled;
   const paidCount = getPaidPeopleCount(table);

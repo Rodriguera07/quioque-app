@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -45,6 +45,18 @@ export function MenuManagementScreen({ navigation }: Props) {
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
   const [saving, setSaving] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<string | null>(null);
+  const [hasEdited, setHasEdited] = useState(false);
+
+  // `menuItems` começa como o catálogo padrão local e só vira o cardápio real
+  // da organização quando o listener do Firestore resolve, o que acontece
+  // de forma assíncrona depois do primeiro render. Sem isso, quem abre a
+  // tela antes desse carregamento terminar edita o catálogo padrão sem
+  // perceber, e "Salvar" sobrescreve o cardápio real com os itens genéricos.
+  // Só resincroniza enquanto o admin não começou a editar, pra não descartar
+  // uma edição em andamento.
+  useEffect(() => {
+    if (!hasEdited) setDraft(menuItems);
+  }, [menuItems, hasEdited]);
 
   const isDirty = useMemo(() => {
     const a = draft.map(stripImage);
@@ -55,16 +67,19 @@ export function MenuManagementScreen({ navigation }: Props) {
   const visibleCategories = activeFilter === 'all' ? CATEGORIES : [activeFilter];
 
   const updateItem = (id: string, patch: Partial<MenuItem>) => {
+    setHasEdited(true);
     setDraft((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   };
 
   const handleAddItem = (category: MenuCategory) => {
+    setHasEdited(true);
     const id = generateId('menu');
     setDraft((prev) => [...prev, { id, category, name: '', price: 0 }]);
   };
 
   const handleConfirmRemove = () => {
     if (!removeTarget) return;
+    setHasEdited(true);
     setDraft((prev) => prev.filter((i) => i.id !== removeTarget));
     setRemoveTarget(null);
   };
@@ -100,6 +115,7 @@ export function MenuManagementScreen({ navigation }: Props) {
     const ok = await saveMenuItems(draft.map(stripImage));
     setSaving(false);
     if (ok) {
+      setHasEdited(false);
       showAlert('Cardápio salvo', 'As alterações já estão disponíveis para toda a equipe.');
     } else {
       showAlert('Erro', 'Não foi possível salvar o cardápio. Verifique sua conexão e tente novamente.');

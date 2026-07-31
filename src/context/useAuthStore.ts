@@ -306,6 +306,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user || !firebaseUser) {
       return { ok: false, error: 'Sessão inválida. Entre novamente.' };
     }
+    let dataAlreadyDeleted = false;
     try {
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(firebaseUser, credential);
@@ -318,6 +319,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       await deleteOwnAccountData(user.orgId, user.uid);
+      dataAlreadyDeleted = true;
 
       profileUnsubscribe?.();
       profileUnsubscribe = null;
@@ -326,6 +328,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await deleteUser(firebaseUser);
       return { ok: true };
     } catch (err: any) {
+      // Se os dados da organização já foram apagados, o pedido de exclusão
+      // foi cumprido — só a remoção da conta no Firebase Auth falhou (ex.:
+      // queda de rede entre as duas chamadas). Não dá pra deixar a sessão
+      // local "logada" apontando pra um perfil que não existe mais; força o
+      // fim da sessão (sem ponteiro em `users/{uid}`, uma nova tentativa de
+      // login já cai em signOut automático pelo listener de auth).
+      if (dataAlreadyDeleted) {
+        await signOut(auth).catch(() => {});
+        set({ status: 'unauthenticated', user: null });
+        return { ok: true };
+      }
       return { ok: false, error: friendlyDeleteAccountError(err?.code ?? '') };
     }
   },

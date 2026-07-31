@@ -3,6 +3,7 @@ import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS } from '../data/menu';
 import {
   clearClosedTablesAndSummarize,
   closeTableTransaction,
+  getClosedSalesSince,
   getDaySummary,
   newTableId,
   saveMenu,
@@ -56,6 +57,10 @@ interface CurrentUser {
 interface PosState {
   tables: Table[];
   closedSalesToday: ClosedSale[];
+  // Início (ISO) da janela de "vendas de hoje" atualmente assinada — usado
+  // pelo endDay para reler o Firestore direto do servidor nesse mesmo
+  // recorte, em vez de confiar só na foto local do listener.
+  salesWindowStart: string | null;
   menuItems: MenuItem[];
   currentDay: string;
   orgId: string | null;
@@ -66,6 +71,7 @@ interface PosState {
   saveMenuItems: (items: MenuItemInput[]) => Promise<boolean>;
 
   openTable: (label: string, waiterName?: string) => string;
+  renameTable: (tableId: string, label: string) => void;
   addItem: (tableId: string, menuItem: MenuItem, quantity?: number) => void;
   incrementItem: (tableId: string, orderItemId: string) => void;
   decrementItem: (tableId: string, orderItemId: string) => void;
@@ -84,6 +90,15 @@ function hydrateMenu(items: MenuItemInput[]): MenuItem[] {
   return items.map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] }));
 }
 
+// Aplica os itens localmente antes de disparar a escrita no Firestore (que
+// só volta pelo listener de `subscribeTables` depois de um round-trip). Sem
+// isso, dois toques rápidos no +/- de um item (garçom apressado) leem o
+// mesmo `tables` desatualizado e cada um escreve "quantidade + 1" a partir do
+// mesmo valor antigo — um dos incrementos some silenciosamente.
+function withItems(tables: Table[], tableId: string, items: OrderItem[]): Table[] {
+  return tables.map((t) => (t.id === tableId ? { ...t, items } : t));
+}
+
 let tablesUnsubscribe: Unsubscribe | null = null;
 let closedSalesUnsubscribe: Unsubscribe | null = null;
 let menuUnsubscribe: Unsubscribe | null = null;
@@ -91,6 +106,7 @@ let menuUnsubscribe: Unsubscribe | null = null;
 export const usePosStore = create<PosState>((set, get) => ({
   tables: [],
   closedSalesToday: [],
+  salesWindowStart: null,
   menuItems: DEFAULT_MENU_ITEMS,
   currentDay: formatDateKey(),
   orgId: null,
@@ -122,6 +138,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         rollup && rollup.closedAt > startOfToday.toISOString()
           ? rollup.closedAt
           : startOfToday.toISOString();
+      set({ salesWindowStart: since });
       closedSalesUnsubscribe = subscribeClosedSalesSince(orgId, since, (closedSalesToday) =>
         set({ closedSalesToday })
       );
@@ -139,7 +156,14 @@ export const usePosStore = create<PosState>((set, get) => ({
     tablesUnsubscribe = null;
     closedSalesUnsubscribe = null;
     menuUnsubscribe = null;
-    set({ tables: [], closedSalesToday: [], menuItems: DEFAULT_MENU_ITEMS, orgId: null, currentUser: null });
+    set({
+      tables: [],
+      closedSalesToday: [],
+      salesWindowStart: null,
+      menuItems: DEFAULT_MENU_ITEMS,
+      orgId: null,
+      currentUser: null,
+    });
   },
 
   saveMenuItems: async (items) => {
@@ -197,6 +221,28 @@ export const usePosStore = create<PosState>((set, get) => ({
     return id;
   },
 
+  renameTable: (tableId, label) => {
+    const { orgId, currentUser, tables } = get();
+    if (!orgId || !currentUser) return;
+    const table = tables.find((t) => t.id === tableId);
+    if (!table || table.status !== 'open') return;
+    const trimmed = label.trim();
+    if (!trimmed || trimmed === table.label) return;
+
+    updateTable(orgId, tableId, { label: trimmed }).catch(
+      warnAndAlert('renomear mesa', 'Não foi possível renomear a mesa')
+    );
+    logAuditEvent({
+      orgId,
+      userId: currentUser.uid,
+      userName: currentUser.displayName,
+      type: 'table_renamed',
+      tableId,
+      tableLabel: trimmed,
+      detail: `De "${table.label}" para "${trimmed}"`,
+    });
+  },
+
   addItem: (tableId, menuItem, quantity = 1) => {
     const { orgId, currentUser, tables } = get();
     if (!orgId || !currentUser) return;
@@ -223,6 +269,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       ];
     }
 
+    set({ tables: withItems(tables, tableId, items) });
     updateTable(orgId, tableId, { items }).catch(
       warnAndAlert('adicionar item', 'Não foi possível adicionar o item')
     );
@@ -250,6 +297,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const items = table.items.map((i) =>
       i.id === orderItemId ? { ...i, quantity: i.quantity + 1 } : i
     );
+    set({ tables: withItems(tables, tableId, items) });
     updateTable(orgId, tableId, { items }).catch(
       warnAndAlert('incrementar item', 'Não foi possível atualizar o item')
     );
@@ -263,6 +311,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const items = table.items
       .map((i) => (i.id === orderItemId ? { ...i, quantity: i.quantity - 1 } : i))
       .filter((i) => i.quantity > 0);
+    set({ tables: withItems(tables, tableId, items) });
     updateTable(orgId, tableId, { items }).catch(
       warnAndAlert('decrementar item', 'Não foi possível atualizar o item')
     );
@@ -274,6 +323,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const table = tables.find((t) => t.id === tableId);
     if (!table) return;
     const items = table.items.filter((i) => i.id !== orderItemId);
+    set({ tables: withItems(tables, tableId, items) });
     updateTable(orgId, tableId, { items }).catch(
       warnAndAlert('remover item', 'Não foi possível remover o item')
     );
@@ -374,9 +424,21 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   endDay: async () => {
-    const { orgId, currentUser, closedSalesToday, currentDay } = get();
+    const { orgId, currentUser, salesWindowStart, currentDay } = get();
     if (!orgId || !currentUser) return null;
-    if (closedSalesToday.length === 0) {
+
+    // Lido direto do servidor (não da foto local de `closedSalesToday`): o
+    // listener local pode estar alguns instantes atrasado, especialmente
+    // quando o fechamento de uma mesa e o encerramento do dia acontecem em
+    // dispositivos diferentes — nesse caso, encerrar com base no listener
+    // deixaria essa venda de fora do rollup do dia para sempre (a próxima
+    // janela começa depois deste corte).
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const since = salesWindowStart ?? startOfToday.toISOString();
+    const sales = await getClosedSalesSince(orgId, since);
+
+    if (sales.length === 0) {
       set({ currentDay: formatDateKey() });
       return null;
     }
@@ -388,7 +450,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       credito: 0,
     };
     let totalRevenue = 0;
-    closedSalesToday.forEach((sale) => {
+    sales.forEach((sale) => {
       sale.payments.forEach((payment) => {
         paymentBreakdown[payment.method] = round2(
           paymentBreakdown[payment.method] + payment.amount
@@ -401,7 +463,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const summary: DaySummary = {
       date: currentDay,
       totalRevenue: round2(totalRevenue),
-      sales: closedSalesToday,
+      sales,
       closedAt,
       paymentBreakdown,
     };
@@ -422,7 +484,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       set({ closedSalesToday })
     );
 
-    set({ currentDay: formatDateKey(), closedSalesToday: [] });
+    set({ currentDay: formatDateKey(), closedSalesToday: [], salesWindowStart: closedAt });
 
     return summary;
   },

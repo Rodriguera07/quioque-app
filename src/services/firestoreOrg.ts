@@ -70,6 +70,16 @@ export function subscribeClosedSalesSince(
   );
 }
 
+// Leitura única e direta do servidor (sem depender do listener local, que
+// pode estar alguns instantes atrasado num outro dispositivo) — usada no
+// encerramento do dia para não computar o faturamento com uma foto
+// desatualizada e "perder" pra sempre uma venda fechada bem na hora do corte.
+export async function getClosedSalesSince(orgId: string, sinceIso: string): Promise<ClosedSale[]> {
+  const q = query(closedSalesCol(orgId), where('closedAt', '>=', sinceIso), orderBy('closedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => d.data() as ClosedSale);
+}
+
 export function subscribeClosedSalesRange(
   orgId: string,
   fromIso: string,

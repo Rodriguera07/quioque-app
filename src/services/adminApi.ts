@@ -1,6 +1,7 @@
 import { deleteApp, initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   inMemoryPersistence,
   initializeAuth,
   sendPasswordResetEmail,
@@ -60,7 +61,17 @@ export async function createOrgUser({
       createdAt: nowIso,
       createdBy: createdByUid,
     });
-    await batch.commit();
+    try {
+      await batch.commit();
+    } catch (batchErr) {
+      // Sem isso, uma falha aqui (rede, regra do Firestore) deixava uma
+      // conta órfã no Firebase Auth: sem perfil, sem ponteiro, e com o
+      // e-mail permanentemente preso em "auth/email-already-in-use" para
+      // qualquer nova tentativa de cadastro. Desfaz a criação do Auth para
+      // que a operação como um todo seja tudo-ou-nada.
+      await deleteUser(credential.user).catch(() => {});
+      throw batchErr;
+    }
 
     return uid;
   } catch (err: any) {

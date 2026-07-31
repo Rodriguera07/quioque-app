@@ -104,6 +104,7 @@ export type AuditEventType =
   | 'login'
   | 'logout'
   | 'table_opened'
+  | 'table_renamed'
   | 'items_added'
   | 'table_closed'
   | 'payment_recorded'
