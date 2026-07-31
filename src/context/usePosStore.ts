@@ -3,6 +3,7 @@ import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS } from '../data/menu';
 import {
   clearClosedTablesAndSummarize,
   closeTableTransaction,
+  getDaySummary,
   newTableId,
   saveMenu,
   subscribeClosedSalesSince,
@@ -106,11 +107,25 @@ export const usePosStore = create<PosState>((set, get) => ({
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    closedSalesUnsubscribe = subscribeClosedSalesSince(
-      orgId,
-      startOfToday.toISOString(),
-      (closedSalesToday) => set({ closedSalesToday })
-    );
+
+    // Se o dia já foi encerrado antes nesta mesma data (em qualquer sessão
+    // ou dispositivo), o corte de "vendas de hoje" precisa começar depois
+    // desse fechamento, não da meia-noite — senão, ao sair e entrar de novo
+    // no mesmo dia, as vendas já encerradas voltam a aparecer como se o dia
+    // nunca tivesse sido fechado.
+    getDaySummary(orgId, formatDateKey()).then((rollup) => {
+      // A org pode ter trocado (novo login) enquanto essa leitura estava em
+      // andamento — nesse caso, quem já reiniciou a sincronização por último
+      // é quem deve vencer.
+      if (get().orgId !== orgId) return;
+      const since =
+        rollup && rollup.closedAt > startOfToday.toISOString()
+          ? rollup.closedAt
+          : startOfToday.toISOString();
+      closedSalesUnsubscribe = subscribeClosedSalesSince(orgId, since, (closedSalesToday) =>
+        set({ closedSalesToday })
+      );
+    });
 
     menuUnsubscribe = subscribeMenu(orgId, (items) => {
       set({ menuItems: items ? hydrateMenu(items) : DEFAULT_MENU_ITEMS });
