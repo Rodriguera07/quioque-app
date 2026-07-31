@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,6 +79,19 @@ export function LoginScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
   const { contentStyle } = useResponsiveContent(440);
+
+  // Cadastro tem mais campos que login (nome do quiosque + nome do
+  // responsável), então precisa de mais espaço vertical — a ilustração e os
+  // selos decorativos cedem lugar ao formulário antes, e mais cedo, do que no
+  // login. Em telas baixas (celulares menores), ambos os modos comprimem
+  // ainda mais para caber sem rolagem antes do teclado abrir.
+  const { height: windowHeight } = useWindowDimensions();
+  const isShort = windowHeight < 900;
+  const isCompact = isShort || mode === 'signup';
+  const heroHeight = isShort ? 60 : isCompact ? 80 : 132;
+  const showFeatures = mode === 'login' && !isShort;
+  const showIntro = !(mode === 'signup' && isShort);
+  const fieldGapStyle = { marginTop: isCompact ? spacing.sm : spacing.md };
 
   const enter = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
@@ -221,12 +235,12 @@ export function LoginScreen() {
         </View>
 
         <ScrollView
-          contentContainerStyle={[styles.container, contentStyle]}
+          contentContainerStyle={[styles.container, isCompact && styles.containerCompact, contentStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={[styles.brandWrap, brandStyle]}>
-            <View style={styles.heroBanner}>
+          <Animated.View style={[styles.brandWrap, isCompact && styles.brandWrapCompact, brandStyle]}>
+            <View style={[styles.heroBanner, { height: heroHeight }]}>
               <LinearGradient
                 colors={[HERO.gradientStart, HERO.gradientEnd]}
                 start={{ x: 0.1, y: 0 }}
@@ -236,7 +250,7 @@ export function LoginScreen() {
               <View style={styles.heroAmbientGlow} pointerEvents="none" />
               <View style={styles.heroContent} pointerEvents="none">
                 <Animated.View style={{ transform: [{ translateY: heroFloatY }] }}>
-                  <BeachUmbrellaIcon size={60} color={colors.white} />
+                  <BeachUmbrellaIcon size={isCompact ? 40 : 60} color={colors.white} />
                 </Animated.View>
               </View>
               <View style={styles.heroWaveWrap} pointerEvents="none">
@@ -253,22 +267,24 @@ export function LoginScreen() {
 
             <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
               <Text style={styles.brandSub}>{welcome.title}</Text>
-              <Text style={styles.brandIntro}>{welcome.subtitle}</Text>
+              {showIntro && <Text style={styles.brandIntro}>{welcome.subtitle}</Text>}
             </Animated.View>
 
-            <View style={styles.featureRow}>
-              {FEATURES.map((f) => (
-                <View key={f.label} style={styles.featureBadge}>
-                  <Ionicons name={f.icon} size={13} color={colors.emerald} />
-                  <Text style={styles.featureBadgeText}>{f.label}</Text>
-                </View>
-              ))}
-            </View>
+            {showFeatures && (
+              <View style={styles.featureRow}>
+                {FEATURES.map((f) => (
+                  <View key={f.label} style={styles.featureBadge}>
+                    <Ionicons name={f.icon} size={13} color={colors.emerald} />
+                    <Text style={styles.featureBadgeText}>{f.label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </Animated.View>
 
           <Animated.View style={cardStyle}>
-            <View style={styles.card}>
-              <View style={styles.modeSwitch}>
+            <View style={[styles.card, isCompact && styles.cardCompact]}>
+              <View style={[styles.modeSwitch, isCompact && styles.modeSwitchCompact]}>
                 <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]} />
                 <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('login')}>
                   <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
@@ -282,7 +298,7 @@ export function LoginScreen() {
                 </AnimatedPressable>
               </View>
 
-              <Text style={styles.cardLabel}>
+              <Text style={[styles.cardLabel, isCompact && styles.cardLabelCompact]}>
                 {mode === 'login' ? 'ACESSO AO CAIXA' : 'CRIAR CONTA DO QUIOSQUE'}
               </Text>
 
@@ -290,7 +306,11 @@ export function LoginScreen() {
                 <>
                   <Text style={styles.fieldLabel}>NOME DO QUIOSQUE</Text>
                   <View
-                    style={[styles.inputWrap, focusedField === 'org' && styles.inputWrapFocused]}
+                    style={[
+                      styles.inputWrap,
+                      isCompact && styles.inputWrapCompact,
+                      focusedField === 'org' && styles.inputWrapFocused,
+                    ]}
                   >
                     <Ionicons
                       name="storefront-outline"
@@ -312,9 +332,13 @@ export function LoginScreen() {
                     />
                   </View>
 
-                  <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>SEU NOME</Text>
+                  <Text style={[styles.fieldLabel, fieldGapStyle]}>SEU NOME</Text>
                   <View
-                    style={[styles.inputWrap, focusedField === 'name' && styles.inputWrapFocused]}
+                    style={[
+                      styles.inputWrap,
+                      isCompact && styles.inputWrapCompact,
+                      focusedField === 'name' && styles.inputWrapFocused,
+                    ]}
                   >
                     <Ionicons
                       name="person-outline"
@@ -338,11 +362,15 @@ export function LoginScreen() {
                 </>
               )}
 
-              <Text style={[styles.fieldLabel, mode === 'signup' && { marginTop: spacing.md }]}>
+              <Text style={[styles.fieldLabel, mode === 'signup' && fieldGapStyle]}>
                 E-MAIL
               </Text>
               <View
-                style={[styles.inputWrap, focusedField === 'user' && styles.inputWrapFocused]}
+                style={[
+                  styles.inputWrap,
+                  isCompact && styles.inputWrapCompact,
+                  focusedField === 'user' && styles.inputWrapFocused,
+                ]}
               >
                 <Ionicons
                   name="mail-outline"
@@ -367,9 +395,13 @@ export function LoginScreen() {
                 />
               </View>
 
-              <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>SENHA</Text>
+              <Text style={[styles.fieldLabel, fieldGapStyle]}>SENHA</Text>
               <View
-                style={[styles.inputWrap, focusedField === 'pass' && styles.inputWrapFocused]}
+                style={[
+                  styles.inputWrap,
+                  isCompact && styles.inputWrapCompact,
+                  focusedField === 'pass' && styles.inputWrapFocused,
+                ]}
               >
                 <Ionicons
                   name="lock-closed-outline"
@@ -413,7 +445,11 @@ export function LoginScreen() {
                 </View>
               ) : null}
 
-              <AnimatedPressable style={styles.enterBtn} onPress={handleSubmit} disabled={loading}>
+              <AnimatedPressable
+                style={[styles.enterBtn, isCompact && styles.enterBtnCompact]}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
                 <Text style={styles.enterBtnText}>
                   {loading
                     ? mode === 'login'
@@ -428,7 +464,7 @@ export function LoginScreen() {
                 ) : null}
               </AnimatedPressable>
 
-              <Text style={styles.legalText}>
+              <Text style={[styles.legalText, isCompact && styles.legalTextCompact]}>
                 Ao continuar, você concorda com o{' '}
                 <Text style={styles.legalLink} onPress={() => setLegalDoc('terms')}>
                   Termo de Uso
@@ -485,16 +521,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
+  },
+  containerCompact: {
+    paddingVertical: spacing.md,
   },
   brandWrap: {
     alignItems: 'center',
     marginBottom: spacing.xxl,
   },
+  brandWrapCompact: {
+    marginBottom: spacing.lg,
+  },
   heroBanner: {
     position: 'relative',
     width: '100%',
-    height: 132,
     borderRadius: radius.xxl,
     overflow: 'hidden',
     shadowColor: HERO.gradientEnd,
@@ -593,6 +634,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 0,
     padding: spacing.lg,
   },
+  cardCompact: {
+    padding: spacing.sm,
+  },
   modeSwitch: {
     position: 'relative',
     flexDirection: 'row',
@@ -600,6 +644,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     padding: 4,
     marginBottom: spacing.lg,
+  },
+  modeSwitchCompact: {
+    marginBottom: spacing.sm,
   },
   modeIndicator: {
     position: 'absolute',
@@ -636,6 +683,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
+  cardLabelCompact: {
+    marginBottom: spacing.sm,
+  },
   fieldLabel: {
     ...typography.label,
     color: colors.textMuted,
@@ -651,6 +701,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     height: 50,
     gap: spacing.xs,
+  },
+  inputWrapCompact: {
+    height: 44,
   },
   inputWrapFocused: {
     borderColor: colors.sand,
@@ -686,6 +739,10 @@ const styles = StyleSheet.create({
     height: 54,
     marginTop: spacing.xl,
   },
+  enterBtnCompact: {
+    height: 48,
+    marginTop: spacing.md,
+  },
   enterBtnText: {
     ...typography.h3,
     color: colors.textInverse,
@@ -696,6 +753,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 17,
     marginTop: spacing.md,
+  },
+  legalTextCompact: {
+    marginTop: spacing.xs,
   },
   legalLink: {
     color: colors.primary,
