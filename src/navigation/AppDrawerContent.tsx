@@ -322,7 +322,7 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
             </View>
             <Text style={styles.logoutText}>Sair</Text>
           </AnimatedPressable>
-          <Text style={styles.version}>Quiosque PDV</Text>
+          <Text style={styles.version}>Trailer Mar Azul</Text>
         </View>
       </SafeAreaView>
     </View>

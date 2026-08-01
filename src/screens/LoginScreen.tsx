@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,10 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
-import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
 import { LegalDocument } from '../components/LegalDocument';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
-import { WaveDivider } from '../components/WaveDivider';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
@@ -36,13 +34,11 @@ const AWNING_COLORS = [
   colors.surface,
 ];
 
-// Mesma paleta "sol se pondo sobre o mar" do ícone do app e do cartão "Caixa
-// do Dia" do Dashboard — reaproveitada aqui para a ilustração de boas-vindas
-// ficar visualmente coerente com o resto do produto.
+// Cores extraídas do próprio logo (ver assets/icon.png), só usadas aqui na
+// tela de login — o resto do app mantém o teal/areia do tema.
 const HERO = {
-  gradientStart: '#10938B',
-  gradientEnd: '#0A5551',
-  ambientGlow: 'rgba(255,207,143,0.3)',
+  shadowColor: '#0E0047',
+  brandBlue: '#1F7BFF',
 };
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
@@ -240,30 +236,21 @@ export function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Animated.View style={[styles.brandWrap, isCompact && styles.brandWrapCompact, brandStyle]}>
-            <View style={[styles.heroBanner, { height: heroHeight }]}>
-              <LinearGradient
-                colors={[HERO.gradientStart, HERO.gradientEnd]}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
+            <Animated.View
+              style={[
+                styles.logoBadge,
+                { width: heroHeight, height: heroHeight, transform: [{ translateY: heroFloatY }] },
+              ]}
+            >
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.logoImage}
+                resizeMode="cover"
               />
-              <View style={styles.heroAmbientGlow} pointerEvents="none" />
-              <View style={styles.heroContent} pointerEvents="none">
-                <Animated.View style={{ transform: [{ translateY: heroFloatY }] }}>
-                  <BeachUmbrellaIcon size={isCompact ? 40 : 60} color={colors.white} />
-                </Animated.View>
-              </View>
-              <View style={styles.heroWaveWrap} pointerEvents="none">
-                <WaveDivider fill={colors.background} stroke="rgba(255,255,255,0.45)" />
-              </View>
-            </View>
+            </Animated.View>
 
-            <Text style={styles.brandTop}>QUIOSQUE</Text>
-            <View style={styles.brandBottomRow}>
-              <View style={styles.brandLine} />
-              <Text style={styles.brandBottom}>PDV</Text>
-              <View style={styles.brandLine} />
-            </View>
+            <Text style={styles.brandTiny}>TRAILER</Text>
+            <Text style={styles.brandBig}>MAR AZUL</Text>
 
             <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
               <Text style={styles.brandSub}>{welcome.title}</Text>
@@ -533,61 +520,31 @@ const styles = StyleSheet.create({
   brandWrapCompact: {
     marginBottom: spacing.lg,
   },
-  heroBanner: {
-    position: 'relative',
-    width: '100%',
+  logoBadge: {
     borderRadius: radius.xxl,
     overflow: 'hidden',
-    shadowColor: HERO.gradientEnd,
+    shadowColor: HERO.shadowColor,
     shadowOpacity: 0.3,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
     marginBottom: spacing.md,
   },
-  heroAmbientGlow: {
-    position: 'absolute',
-    top: -40,
-    right: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: HERO.ambientGlow,
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
-  heroContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  brandTiny: {
+    ...typography.label,
+    color: colors.emerald,
+    letterSpacing: 4,
   },
-  heroWaveWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 22,
-  },
-  brandTop: {
+  brandBig: {
     ...typography.display,
     fontSize: 32,
-    color: colors.textPrimary,
-    letterSpacing: -1,
-  },
-  brandBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    color: HERO.brandBlue,
+    letterSpacing: 1,
     marginTop: 2,
-  },
-  brandLine: {
-    width: 36,
-    height: 1,
-    backgroundColor: colors.borderLight,
-  },
-  brandBottom: {
-    ...typography.display,
-    fontSize: 32,
-    color: colors.sand,
-    letterSpacing: 2,
   },
   brandSub: {
     ...typography.h3,

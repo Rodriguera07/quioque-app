@@ -1,6 +1,6 @@
-# Quiosque PDV
+# Trailer Mar Azul — PDV
 
-Aplicativo de Ponto de Venda (PDV) para quiosque, otimizado para celular, com dashboard estilo fintech (dark, grafite + azul neon + verde esmeralda). Construído com React Native + Expo (Managed Workflow) e TypeScript.
+Aplicativo de Ponto de Venda (PDV) para o Trailer Mar Azul, otimizado para celular, com dashboard estilo fintech (dark, grafite + azul neon + verde esmeralda). Construído com React Native + Expo (Managed Workflow) e TypeScript.
 
 O cardápio é estático/mockado por enquanto (`src/data/menu.ts`) — pensado para futuramente virar editável.
 

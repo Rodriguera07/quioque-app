@@ -12,9 +12,9 @@ export interface LegalDoc {
 
 export const PRIVACY_POLICY: LegalDoc = {
   title: 'Política de Privacidade',
-  updatedAt: '29 de julho de 2026',
+  updatedAt: '1 de agosto de 2026',
   intro:
-    'Esta política explica quais dados o Quiosque PDV coleta, para que servem, por quanto tempo ficam guardados e quais direitos você tem sobre eles, em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).',
+    'Esta política explica quais dados o Trailer Mar Azul coleta, para que servem, por quanto tempo ficam guardados e quais direitos você tem sobre eles, em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).',
   sections: [
     {
       title: '1. Dados que coletamos',
@@ -58,14 +58,14 @@ export const PRIVACY_POLICY: LegalDoc = {
 
 export const TERMS_OF_USE: LegalDoc = {
   title: 'Termo de Uso',
-  updatedAt: '29 de julho de 2026',
+  updatedAt: '1 de agosto de 2026',
   intro:
-    'Ao criar uma conta ou usar o Quiosque PDV, você concorda com as condições descritas abaixo. Leia com atenção antes de continuar.',
+    'Ao criar uma conta ou usar o Trailer Mar Azul, você concorda com as condições descritas abaixo. Leia com atenção antes de continuar.',
   sections: [
     {
       title: '1. Sobre o serviço',
       body:
-        'O Quiosque PDV é um sistema de gestão de comandas e vendas voltado a quiosques, bares e estabelecimentos similares, permitindo abrir mesas, lançar itens de um cardápio, controlar pagamentos e acompanhar relatórios do dia a dia do negócio.',
+        'O Trailer Mar Azul é um sistema de gestão de comandas e vendas voltado a quiosques, bares e estabelecimentos similares, permitindo abrir mesas, lançar itens de um cardápio, controlar pagamentos e acompanhar relatórios do dia a dia do negócio.',
     },
     {
       title: '2. Cadastro e responsabilidade pela conta',

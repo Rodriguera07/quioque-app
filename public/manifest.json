@@ -1,7 +1,7 @@
 {
-  "name": "Quiosque PDV",
-  "short_name": "Quiosque PDV",
-  "description": "PDV de quiosque — mesas, consumações e relatórios.",
+  "name": "Trailer Mar Azul",
+  "short_name": "Mar Azul",
+  "description": "PDV do Trailer Mar Azul — mesas, consumações e relatórios.",
   "start_url": "/",
   "scope": "/",
   "id": "/",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "lang": "pt-BR",
   "background_color": "#F5ECD8",
-  "theme_color": "#0D8FA6",
+  "theme_color": "#1F7BFF",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },

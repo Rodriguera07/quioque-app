@@ -355,12 +355,20 @@ export function initAuthListener(): Unsubscribe {
       useAuthStore.setState({ status: 'unauthenticated', user: null });
       return;
     }
-    const pointer = await fetchPointerWithRetry(firebaseUser.uid);
-    if (!pointer) {
-      await signOut(auth);
+    try {
+      const pointer = await fetchPointerWithRetry(firebaseUser.uid);
+      if (!pointer) {
+        await signOut(auth);
+        useAuthStore.setState({ status: 'unauthenticated', user: null });
+        return;
+      }
+      watchProfile(firebaseUser.uid, pointer.orgId);
+    } catch (err) {
+      // Sem isso, um erro aqui (ex.: permissão negada, sem conexão) virava
+      // uma rejeição de promise não tratada e deixava a sessão travada em
+      // "loading" para sempre, sem cair de volta no login.
+      console.warn('[auth] listener falhou ao buscar ponteiro do usuário', err);
       useAuthStore.setState({ status: 'unauthenticated', user: null });
-      return;
     }
-    watchProfile(firebaseUser.uid, pointer.orgId);
   });
 }
