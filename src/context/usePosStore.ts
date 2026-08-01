@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS } from '../data/menu';
+import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS, sortMenuItems } from '../data/menu';
 import {
   clearClosedTablesAndSummarize,
   closeTableTransaction,
@@ -87,7 +87,7 @@ interface PosState {
 // Enche `image` (require() de asset local) a partir do catálogo padrão, por
 // id — itens do Firestore nunca carregam imagem própria (ver MenuItemInput).
 function hydrateMenu(items: MenuItemInput[]): MenuItem[] {
-  return items.map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] }));
+  return sortMenuItems(items.map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] })));
 }
 
 // Aplica os itens localmente antes de disparar a escrita no Firestore (que

@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ImageSourcePropType } from 'react-native';
-import { MenuItem } from '../types';
+import { MenuCategory, MenuItem } from '../types';
 
 // Catálogo padrão / semente: usado como cardápio inicial de qualquer
 // organização (antes de o admin salvar sua própria edição no Firestore) e
 // como fonte das imagens dos itens originais — itens criados pelo admin na
 // tela de Cardápio não têm imagem (mostram o ícone da categoria).
-export const DEFAULT_MENU_ITEMS: MenuItem[] = [
+const RAW_MENU_ITEMS: MenuItem[] = [
   // Bebidas
   { id: 'beb-1', category: 'bebidas', name: 'Refrigerante Lata / Tônica', price: 8, image: require('../../assets/menu/refrigerantes.jpg') },
   { id: 'beb-2', category: 'bebidas', name: 'Suco Natural com Água', price: 15, image: require('../../assets/menu/sucos-naturais.jpg') },
@@ -102,6 +102,22 @@ export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   porcoes: 'restaurant-outline',
   pasteis: 'fast-food-outline',
 };
+
+const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as MenuCategory[];
+
+// Agrupado por seção (na mesma ordem das abas/categorias) e, dentro de cada
+// seção, em ordem alfabética — usado sempre que o cardápio é lido (padrão ou
+// salvo pela organização), pra não depender da ordem em que os itens foram
+// cadastrados/editados.
+export function sortMenuItems<T extends { category: MenuCategory; name: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const categoryDiff = CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
+    if (categoryDiff !== 0) return categoryDiff;
+    return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+  });
+}
+
+export const DEFAULT_MENU_ITEMS: MenuItem[] = sortMenuItems(RAW_MENU_ITEMS);
 
 export const DEFAULT_IMAGE_BY_ID: Record<string, ImageSourcePropType> = Object.fromEntries(
   DEFAULT_MENU_ITEMS.filter((item) => item.image).map((item) => [item.id, item.image as ImageSourcePropType])
