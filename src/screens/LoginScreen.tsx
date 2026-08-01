@@ -19,7 +19,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { LegalDocument } from '../components/LegalDocument';
-import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
@@ -84,10 +83,12 @@ export function LoginScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const isShort = windowHeight < 900;
   const isCompact = isShort || mode === 'signup';
-  const heroHeight = isShort ? 60 : isCompact ? 80 : 132;
+  // Cadastro + tela baixa é a combinação mais apertada (4 campos + selo) —
+  // encolhe o selo ainda mais só nesse caso pra sobrar espaço pro formulário.
+  const heroHeight = mode === 'signup' && isShort ? 44 : isShort ? 60 : isCompact ? 80 : 132;
   const showFeatures = mode === 'login' && !isShort;
   const showIntro = !(mode === 'signup' && isShort);
-  const fieldGapStyle = { marginTop: isCompact ? spacing.sm : spacing.md };
+  const fieldGapStyle = { marginTop: isCompact ? spacing.xs : spacing.md };
 
   const enter = useRef(new Animated.Value(0)).current;
   const shake = useRef(new Animated.Value(0)).current;
@@ -463,7 +464,6 @@ export function LoginScreen() {
                 .
               </Text>
             </View>
-            <ReceiptTornEdge />
           </Animated.View>
         </ScrollView>
 
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   brandWrapCompact: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   logoBadge: {
     borderRadius: radius.xxl,
@@ -585,14 +585,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    borderBottomWidth: 0,
     borderRadius: radius.xxl,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    shadowColor: HERO.shadowColor,
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   },
   cardCompact: {
     padding: spacing.sm,
+    paddingBottom: spacing.md,
   },
   modeSwitch: {
     position: 'relative',
