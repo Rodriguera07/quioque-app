@@ -46,6 +46,7 @@ yarn-error.*
 
 firebase-debug.log
 firebase-debug.*.log
+.firebase/
 
 # Service account key used only by the local bootstrap script — never commit
 scripts/serviceAccountKey.json

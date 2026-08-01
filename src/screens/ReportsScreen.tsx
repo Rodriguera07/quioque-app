@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
+import { DateField } from '../components/DateField';
 import { EmptyState } from '../components/EmptyState';
 import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
@@ -14,7 +14,7 @@ import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
 import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
-import { formatCurrency, formatDateLabel } from '../utils/format';
+import { formatCurrency } from '../utils/format';
 import { getPeriodReport } from '../utils/reports';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reports'>;
@@ -56,7 +56,6 @@ export function ReportsScreen({ navigation }: Props) {
   const [preset, setPreset] = useState<PeriodPreset>('7d');
   const [startDate, setStartDate] = useState(subDays(new Date(), 6));
   const [endDate, setEndDate] = useState(new Date());
-  const [pickerTarget, setPickerTarget] = useState<'start' | 'end' | null>(null);
 
   const range = useMemo(() => {
     if (preset === 'custom') return { start: startDate, end: endDate };
@@ -73,13 +72,6 @@ export function ReportsScreen({ navigation }: Props) {
 
   const handleSelectPreset = (key: PeriodPreset) => {
     setPreset(key);
-  };
-
-  const onChangeDate = (event: unknown, selected?: Date) => {
-    if (Platform.OS === 'android') setPickerTarget(null);
-    if (!selected) return;
-    if (pickerTarget === 'start') setStartDate(selected);
-    if (pickerTarget === 'end') setEndDate(selected);
   };
 
   return (
@@ -117,26 +109,10 @@ export function ReportsScreen({ navigation }: Props) {
 
       {preset === 'custom' && (
         <View style={styles.dateRow}>
-          <TouchableOpacity style={styles.dateField} onPress={() => setPickerTarget('start')}>
-            <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
-            <Text style={styles.dateFieldText}>{formatDateLabel(startDate.toISOString())}</Text>
-          </TouchableOpacity>
+          <DateField value={startDate} onChange={setStartDate} maximumDate={endDate} />
           <Ionicons name="arrow-forward" size={13} color={colors.textMuted} />
-          <TouchableOpacity style={styles.dateField} onPress={() => setPickerTarget('end')}>
-            <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
-            <Text style={styles.dateFieldText}>{formatDateLabel(endDate.toISOString())}</Text>
-          </TouchableOpacity>
+          <DateField value={endDate} onChange={setEndDate} maximumDate={new Date()} />
         </View>
-      )}
-
-      {pickerTarget && (
-        <DateTimePicker
-          value={pickerTarget === 'start' ? startDate : endDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={onChangeDate}
-          maximumDate={new Date()}
-        />
       )}
 
       <ScrollView
@@ -283,22 +259,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.sm,
     marginBottom: spacing.sm,
-  },
-  dateField: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xxs,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  dateFieldText: {
-    ...typography.bodySm,
-    color: colors.textPrimary,
   },
   content: {
     paddingHorizontal: spacing.lg,
