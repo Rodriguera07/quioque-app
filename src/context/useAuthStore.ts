@@ -199,6 +199,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       return { ok: true };
     } catch (err: any) {
+      console.error('[auth] login falhou', err);
       return { ok: false, error: friendlyAuthError(err?.code ?? '') };
     }
   },

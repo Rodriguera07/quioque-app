@@ -50,3 +50,6 @@ firebase-debug.*.log
 
 # Service account key used only by the local bootstrap script — never commit
 scripts/serviceAccountKey.json
+
+.vercel
+.env*

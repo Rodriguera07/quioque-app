@@ -35,10 +35,10 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Metro está configurado para preferir a condição "react-native" dos pacotes
-// em todas as plataformas (ver metro.config.js), então o build RN do SDK de
-// Auth também é o que roda no target web. Ainda assim, seguimos o padrão
-// oficial do Firebase e inicializamos explicitamente por plataforma.
+// metro.config.js só força a condição "react-native" para o zustand — em
+// todo o resto (incluindo o firebase/auth) a resolução por plataforma segue
+// o padrão do Metro, então o web usa o build de browser do SDK e o nativo
+// usa o build de React Native (que exige a persistência via AsyncStorage).
 export const auth: Auth =
   Platform.OS === 'web'
     ? getAuth(app)
