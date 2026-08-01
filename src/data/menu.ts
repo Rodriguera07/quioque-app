@@ -20,6 +20,7 @@ export const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'beb-10', category: 'bebidas', name: 'Cerveja Heineken Sem Álcool', price: 11, image: require('../../assets/menu/cerveja-sem-alcool.jpg') },
   { id: 'beb-11', category: 'bebidas', name: 'Suco Natural com Água (2 Frutas)', price: 20, image: require('../../assets/menu/sucos-naturais.jpg') },
   { id: 'beb-12', category: 'bebidas', name: 'Suco Natural com Leite (2 Frutas)', price: 23, image: require('../../assets/menu/sucos-naturais.jpg') },
+  { id: 'beb-13', category: 'bebidas', name: 'Cerveja Amstel (350ml)', price: 8, image: require('../../assets/menu/cervejas.png') },
 
   // Drinks
   { id: 'dri-1', category: 'drinks', name: 'Caipirinha (1 Fruta) - Pinga', price: 23, image: require('../../assets/menu/caipirinhas.jpg') },
