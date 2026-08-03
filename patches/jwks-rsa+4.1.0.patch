@@ -1,3 +1,24 @@
+diff --git a/node_modules/jwks-rsa/src/integrations/passport.js b/node_modules/jwks-rsa/src/integrations/passport.js
+index 79d75da..b22d364 100644
+--- a/node_modules/jwks-rsa/src/integrations/passport.js
++++ b/node_modules/jwks-rsa/src/integrations/passport.js
+@@ -1,4 +1,3 @@
+-const jose = require('jose');
+ const { ArgumentError } = require('../errors');
+ const { JwksClient } = require('../JwksClient');
+ const supportedAlg = require('./config');
+@@ -16,6 +15,11 @@ const handleSigningKeyError = (err, cb) => {
+ };
+ 
+ module.exports.passportJwtSecret = function (options) {
++  // Lazy require: `jose` v5+ is ESM-only and this module is loaded
++  // unconditionally by jwks-rsa's index.js barrel export, crashing CJS
++  // bundlers (Vercel Functions) even when passport isn't used at all.
++  // eslint-disable-next-line global-require
++  const jose = require('jose');
+   if (options === null || options === undefined) {
+     throw new ArgumentError('An options object must be provided when initializing passportJwtSecret');
+   }
 diff --git a/node_modules/jwks-rsa/src/utils.js b/node_modules/jwks-rsa/src/utils.js
 index ef3ffb5..5e5b5b2 100644
 --- a/node_modules/jwks-rsa/src/utils.js
