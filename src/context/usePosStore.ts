@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS, sortMenuItems } from '../data/menu';
+import { DEFAULT_IMAGE_BY_ID, DEFAULT_MENU_ITEMS, normalizePortionItems, sortMenuItems } from '../data/menu';
 import {
   clearClosedTablesAndSummarize,
   closeTableTransaction,
@@ -87,7 +87,9 @@ interface PosState {
 // Enche `image` (require() de asset local) a partir do catálogo padrão, por
 // id — itens do Firestore nunca carregam imagem própria (ver MenuItemInput).
 function hydrateMenu(items: MenuItemInput[]): MenuItem[] {
-  return sortMenuItems(items.map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] })));
+  return sortMenuItems(
+    normalizePortionItems(items).map((item) => ({ ...item, image: DEFAULT_IMAGE_BY_ID[item.id] }))
+  );
 }
 
 // Aplica os itens localmente antes de disparar a escrita no Firestore (que
@@ -187,11 +189,19 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   openTable: (label, waiterName) => {
-    const { orgId, currentUser } = get();
+    const { orgId, currentUser, tables } = get();
     if (!orgId || !currentUser) return '';
 
-    const id = newTableId(orgId);
     const trimmedLabel = label.trim();
+    // A tela já bloqueia e avisa o usuário antes de chegar aqui — este é só
+    // um guard silencioso contra chamadas concorrentes (ex.: duplo toque no
+    // botão "Abrir Mesa" antes do primeiro clique navegar para longe da tela).
+    const duplicate = tables.some(
+      (t) => t.status === 'open' && t.label.trim().toLowerCase() === trimmedLabel.toLowerCase()
+    );
+    if (duplicate) return '';
+
+    const id = newTableId(orgId);
     const newTable: Table = {
       id,
       label: trimmedLabel,

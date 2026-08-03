@@ -103,6 +103,22 @@ export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   pasteis: 'fast-food-outline',
 };
 
+// "Porção" já é o título da seção — repeti-lo em cada nome ("Porção de
+// Camarão") é redundante, então tiramos o prefixo e mostramos só "Camarão".
+// Um nome que era só "Porção" (sem dizer de quê) vira string vazia e é
+// descartado: era digitação incompleta, nunca um prato de verdade.
+function stripPortionPrefix(name: string): string {
+  return name.replace(/^por[cç][aã]o(\s+de)?\s*/i, '').trim();
+}
+
+export function normalizePortionItems<T extends { category: MenuCategory; name: string }>(
+  items: T[]
+): T[] {
+  return items
+    .map((item) => (item.category === 'porcoes' ? { ...item, name: stripPortionPrefix(item.name) } : item))
+    .filter((item) => !(item.category === 'porcoes' && item.name === ''));
+}
+
 const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as MenuCategory[];
 
 // Agrupado por seção (na mesma ordem das abas/categorias) e, dentro de cada
@@ -117,7 +133,7 @@ export function sortMenuItems<T extends { category: MenuCategory; name: string }
   });
 }
 
-export const DEFAULT_MENU_ITEMS: MenuItem[] = sortMenuItems(RAW_MENU_ITEMS);
+export const DEFAULT_MENU_ITEMS: MenuItem[] = sortMenuItems(normalizePortionItems(RAW_MENU_ITEMS));
 
 export const DEFAULT_IMAGE_BY_ID: Record<string, ImageSourcePropType> = Object.fromEntries(
   DEFAULT_MENU_ITEMS.filter((item) => item.image).map((item) => [item.id, item.image as ImageSourcePropType])

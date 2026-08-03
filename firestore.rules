@@ -56,7 +56,15 @@ service cloud.firestore {
     // de usuários.
     match /organizations/{orgId}/users/{uid} {
       allow get: if isOrgMember(orgId) && (request.auth.uid == uid || isOrgAdmin(orgId));
-      allow list: if isOrgAdmin(orgId);
+      // Admin lista a equipe inteira (tela de gestão de usuários). Qualquer
+      // membro também pode listar só a fatia de admins ativos — sem isso,
+      // notifyAdmins() não consegue achar os tokens push dos admins quando
+      // quem abre mesa/lança item/fecha mesa é um funcionário (não-admin), e
+      // a notificação nunca sai. A query em getAdminPushTokens já filtra
+      // exatamente por esses dois campos, então o Firestore consegue provar
+      // que o resultado nunca extrapola essa fatia.
+      allow list: if isOrgAdmin(orgId)
+        || (isOrgMember(orgId) && resource.data.role == 'admin' && resource.data.active == true);
       // Só um admin cadastra novo usuário, e só com os campos esperados
       // (evita que o novo perfil já nasça "active: false" ou com papel
       // inválido, por exemplo) — ou o próprio usuário no autocadastro,

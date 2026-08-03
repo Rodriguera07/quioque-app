@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { AdminNotificationToasts } from '../components/AdminNotificationToasts';
 import { useAuthStore } from '../context/useAuthStore';
 import { usePosStore } from '../context/usePosStore';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -46,17 +47,20 @@ export function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      {status === 'unauthenticated' ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
-      ) : (
-        <Stack.Screen name="Main" component={AppDrawer} />
-      )}
-    </Stack.Navigator>
+    <>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        {status === 'unauthenticated' ? (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : (
+          <Stack.Screen name="Main" component={AppDrawer} />
+        )}
+      </Stack.Navigator>
+      {status === 'authenticated' && <AdminNotificationToasts />}
+    </>
   );
 }

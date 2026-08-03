@@ -23,19 +23,43 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OpenTable'>;
 
 const QUICK_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Balcão'];
 
+function findDuplicateLabel(tables: { status: string; label: string }[], label: string) {
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+  const match = tables.find(
+    (t) => t.status === 'open' && t.label.trim().toLowerCase() === trimmed.toLowerCase()
+  );
+  return match ? trimmed : null;
+}
+
 export function OpenTableScreen({ navigation }: Props) {
   const openTable = usePosStore((s) => s.openTable);
+  const tables = usePosStore((s) => s.tables);
   const [label, setLabel] = useState('');
   const [waiterName, setWaiterName] = useState('');
   const [error, setError] = useState('');
   const { contentStyle } = useResponsiveContent();
+
+  // Avisa assim que o número digitado/selecionado bate com uma mesa já
+  // aberta — antes de tocar em "Abrir Mesa", não só depois.
+  const applyLabel = (value: string) => {
+    setLabel(value);
+    const duplicate = findDuplicateLabel(tables, value);
+    setError(duplicate ? `A mesa "${duplicate}" já está aberta. Escolha outro número ou nome.` : '');
+  };
 
   const handleConfirm = () => {
     if (!label.trim()) {
       setError('Informe o número ou nome da mesa.');
       return;
     }
+    const duplicate = findDuplicateLabel(tables, label);
+    if (duplicate) {
+      setError(`A mesa "${duplicate}" já está aberta. Escolha outro número ou nome.`);
+      return;
+    }
     const id = openTable(label, waiterName);
+    if (!id) return;
     navigation.replace('TableDetail', { tableId: id });
   };
 
@@ -59,25 +83,40 @@ export function OpenTableScreen({ navigation }: Props) {
           <Text style={styles.fieldLabel}>MESA / NÚMERO</Text>
           <TextInput
             value={label}
-            onChangeText={(t) => {
-              setLabel(t);
-              if (error) setError('');
-            }}
+            onChangeText={applyLabel}
             placeholder="Ex: Mesa 12"
             placeholderTextColor={colors.textMuted}
-            style={styles.input}
+            style={[styles.input, error && styles.inputError]}
           />
 
+          {error ? (
+            <View style={styles.errorBox}>
+              <Ionicons name="alert-circle" size={14} color={colors.danger} />
+              <Text style={styles.error}>{error}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.quickRow}>
-            {QUICK_LABELS.map((q) => (
-              <AnimatedPressable
-                key={q}
-                style={[styles.chip, label === q && styles.chipActive]}
-                onPress={() => setLabel(q)}
-              >
-                <Text style={[styles.chipText, label === q && styles.chipTextActive]}>{q}</Text>
-              </AnimatedPressable>
-            ))}
+            {QUICK_LABELS.map((q) => {
+              const isDuplicate = findDuplicateLabel(tables, q) !== null;
+              return (
+                <AnimatedPressable
+                  key={q}
+                  style={[styles.chip, label === q && styles.chipActive, isDuplicate && styles.chipDuplicate]}
+                  onPress={() => applyLabel(q)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      label === q && styles.chipTextActive,
+                      isDuplicate && styles.chipTextDuplicate,
+                    ]}
+                  >
+                    {q}
+                  </Text>
+                </AnimatedPressable>
+              );
+            })}
           </View>
 
           <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>
@@ -90,8 +129,6 @@ export function OpenTableScreen({ navigation }: Props) {
             placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
         </ScrollView>
 
         <View style={[styles.footer, contentStyle]}>
@@ -144,6 +181,19 @@ const styles = StyleSheet.create({
     ...typography.bodyLg,
     color: colors.textPrimary,
   },
+  inputError: {
+    borderColor: colors.danger,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.dangerMuted,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.sm,
+  },
   quickRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -175,10 +225,17 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: nunitoFontFamily.bold,
   },
+  chipDuplicate: {
+    borderColor: colors.danger,
+    borderStyle: 'dashed',
+  },
+  chipTextDuplicate: {
+    color: colors.danger,
+  },
   error: {
     ...typography.bodySm,
     color: colors.danger,
-    marginTop: spacing.sm,
+    flexShrink: 1,
   },
   footer: {
     padding: spacing.lg,

@@ -3,6 +3,7 @@ import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -124,6 +125,11 @@ export function MenuManagementScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+      <Image
+        source={require('../../assets/icon.png')}
+        style={styles.backgroundLogo}
+        resizeMode="contain"
+      />
       <View style={styles.header}>
         <TouchableOpacity onPress={handleGoBackPress} style={styles.backBtn} accessibilityLabel="Voltar">
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
@@ -259,6 +265,17 @@ export function MenuManagementScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  backgroundLogo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.05,
+    pointerEvents: 'none',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -376,6 +393,7 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     flex: 1,
+    minWidth: 0,
     ...typography.body,
     color: colors.textPrimary,
     backgroundColor: colors.surfaceHighlight,
@@ -386,6 +404,7 @@ const styles = StyleSheet.create({
   priceWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     backgroundColor: colors.surfaceHighlight,
     borderRadius: radius.md,
     paddingHorizontal: spacing.xs,
@@ -408,6 +427,7 @@ const styles = StyleSheet.create({
   removeBtn: {
     width: 36,
     height: 36,
+    flexShrink: 0,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
