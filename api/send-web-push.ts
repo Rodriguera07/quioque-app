@@ -30,6 +30,20 @@ interface WebPushSubscription {
 // envio em si só pode acontecer aqui, não em usePosStore/notifications.ts
 // (que é onde o push nativo via Expo já é enviado direto do cliente).
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // O app é servido em mais de um domínio Vercel (quiosque-pdv.vercel.app,
+  // trailer-mar-azul.vercel.app, ambos aliases do mesmo deploy) e essa
+  // função vive num domínio fixo — do ponto de vista do navegador isso é
+  // cross-origin, então sem CORS o fetch falha silenciosamente antes mesmo
+  // de sair a requisição real. Permissivo é seguro aqui: quem chama ainda
+  // precisa de um ID token válido, não há cookie/sessão envolvida.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' });
     return;
