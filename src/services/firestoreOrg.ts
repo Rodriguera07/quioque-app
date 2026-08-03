@@ -15,7 +15,15 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { AuditLogEntry, ClosedSale, MenuItemInput, PaymentMethod, Table, UserProfile } from '../types';
+import {
+  AuditLogEntry,
+  ClosedSale,
+  MenuItemInput,
+  PaymentMethod,
+  Table,
+  UserProfile,
+  WebPushSubscription,
+} from '../types';
 import { computeTotals, isPaidInFull } from '../utils/billing';
 
 const tablesCol = (orgId: string) => collection(db, 'organizations', orgId, 'tables');
@@ -203,6 +211,18 @@ export function setOrgUserActive(orgId: string, uid: string, active: boolean): P
 
 export function setUserPushToken(orgId: string, uid: string, expoPushToken: string): Promise<void> {
   return updateDoc(doc(orgUsersCol(orgId), uid), { expoPushToken });
+}
+
+// Assinatura de Web Push (endpoint + chaves) do navegador do usuário. O
+// envio em si é feito pela função serverless (precisa da VAPID private key,
+// que nunca pode ir pro cliente), por isso não há um "getAdminWebPush..."
+// aqui — quem lê essa fatia é a função, via Admin SDK.
+export function setUserWebPushSubscription(
+  orgId: string,
+  uid: string,
+  webPushSubscription: WebPushSubscription
+): Promise<void> {
+  return updateDoc(doc(orgUsersCol(orgId), uid), { webPushSubscription });
 }
 
 // Tokens de todos os admins ativos da org. Inclui propositalmente quem

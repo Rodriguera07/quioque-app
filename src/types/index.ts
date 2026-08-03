@@ -88,6 +88,12 @@ export interface DaySummary {
 
 export type Role = 'admin' | 'staff';
 
+// Formato padrão de PushSubscription.toJSON() do navegador.
+export interface WebPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export interface UserProfile {
   uid: string;
   orgId: string;
@@ -98,6 +104,7 @@ export interface UserProfile {
   createdAt: string; // ISO
   createdBy: string; // uid de quem criou
   expoPushToken?: string;
+  webPushSubscription?: WebPushSubscription;
 }
 
 export type AuditEventType =

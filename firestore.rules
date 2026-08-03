@@ -82,12 +82,14 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/organizations/$(orgId)).data.ownerId == request.auth.uid);
       // Admin pode atualizar campos como "active", mas não pode alterar "role"
       // por aqui (evita auto-promoção); troca de papel fica fora do app por ora.
-      // Qualquer usuário também pode gravar só o próprio token de notificação
-      // (necessário para registrar o dispositivo sem depender do admin).
+      // Qualquer usuário também pode gravar só o próprio token/assinatura de
+      // notificação (necessário para registrar o dispositivo sem depender do
+      // admin) — push nativo (expoPushToken) ou web push (webPushSubscription).
       allow update: if (isOrgAdmin(orgId)
           && !('role' in request.resource.data.diff(resource.data).affectedKeys()))
         || (isSignedIn() && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expoPushToken']));
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['expoPushToken', 'webPushSubscription']));
       // Exclusão de conta pelo próprio usuário (LGPD, direito de eliminação).
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
