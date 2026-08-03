@@ -55,7 +55,7 @@ export async function notifyAdmins(orgId: string, title: string, body: string): 
     const tokens = await getAdminPushTokens(orgId);
     if (tokens.length === 0) return;
 
-    await fetch('https://exp.host/--/api/v2/push/send', {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -65,6 +65,19 @@ export async function notifyAdmins(orgId: string, title: string, body: string): 
       body: JSON.stringify(
         tokens.map((to) => ({ to, title, body, sound: 'default' }))
       ),
+    });
+
+    // O Expo Push API responde 200 mesmo quando um envio individual falha
+    // (token expirado, credencial FCM/APNs ausente etc.) — o erro real vem
+    // dentro do corpo, por ticket. Sem checar isso, uma falha de entrega
+    // nunca aparecia em lugar nenhum, nem no log.
+    const data = (await res.json().catch(() => null)) as {
+      data?: Array<{ status: string; message?: string; details?: unknown }>;
+    } | null;
+    data?.data?.forEach((ticket, i) => {
+      if (ticket.status === 'error') {
+        console.warn(`[notifications] Push para ${tokens[i]} falhou:`, ticket.message, ticket.details);
+      }
     });
   } catch (err) {
     console.warn('[notifications] Falha ao notificar admins', err);
