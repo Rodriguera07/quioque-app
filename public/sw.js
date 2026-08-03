@@ -20,8 +20,13 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
+      // `icon` é o ícone grande (colorido) dentro da notificação. `badge` é
+      // o ícone pequeno da barra de status do Android — o SO ignora a cor e
+      // usa só o canal alfa da imagem, então precisa ser uma silhueta
+      // branca sobre fundo transparente; usar a logo colorida ali vira um
+      // quadrado branco sólido (é o que estava acontecendo).
       icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      badge: '/badge-monochrome.png',
       data: { url: payload.url || '/' },
     })
   );
