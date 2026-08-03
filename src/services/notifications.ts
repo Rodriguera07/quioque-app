@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { getAdminPushTokens, setUserPushToken } from './firestoreOrg';
+import { showAlert } from '../utils/alert';
 
 // Sem isso, uma notificação que chega com o app aberto em primeiro plano
 // nunca aparece (o padrão do SDK é não exibir banner/lista nesse caso).
@@ -36,15 +37,25 @@ export async function registerForPushNotificationsAsync(
       const { status: requestedStatus } = await Notifications.requestPermissionsAsync();
       status = requestedStatus;
     }
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      // TODO(debug): diagnóstico temporário — remover depois de confirmar
+      // por que o push não está chegando fora do app.
+      showAlert('[Debug] Push', `Permissão de notificação: "${status}" (precisa ser "granted").`);
+      return;
+    }
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    if (!projectId) return;
+    if (!projectId) {
+      showAlert('[Debug] Push', 'projectId do EAS não encontrado na config do app.');
+      return;
+    }
 
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     await setUserPushToken(orgId, uid, token);
+    showAlert('[Debug] Push', `Token registrado com sucesso.\n${token}`);
   } catch (err) {
     console.warn('[notifications] Falha ao registrar push token', err);
+    showAlert('[Debug] Push', `Erro ao registrar token: ${String(err)}`);
   }
 }
 
@@ -53,7 +64,12 @@ export async function registerForPushNotificationsAsync(
 export async function notifyAdmins(orgId: string, title: string, body: string): Promise<void> {
   try {
     const tokens = await getAdminPushTokens(orgId);
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      // TODO(debug): diagnóstico temporário — remover depois de confirmar
+      // por que o push não está chegando fora do app.
+      showAlert('[Debug] Push', 'Nenhum admin ativo com token push encontrado.');
+      return;
+    }
 
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
@@ -79,7 +95,16 @@ export async function notifyAdmins(orgId: string, title: string, body: string): 
         console.warn(`[notifications] Push para ${tokens[i]} falhou:`, ticket.message, ticket.details);
       }
     });
+
+    // TODO(debug): diagnóstico temporário — remover depois de confirmar por
+    // que o push não está chegando fora do app.
+    const summary =
+      data?.data
+        ?.map((t, i) => `${tokens[i].slice(0, 24)}…: ${t.status}${t.message ? ' — ' + t.message : ''}`)
+        .join('\n') ?? `HTTP ${res.status}, resposta sem JSON`;
+    showAlert('[Debug] Push enviado', summary);
   } catch (err) {
     console.warn('[notifications] Falha ao notificar admins', err);
+    showAlert('[Debug] Push', `Erro ao enviar: ${String(err)}`);
   }
 }
