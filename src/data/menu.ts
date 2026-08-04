@@ -21,6 +21,7 @@ const RAW_MENU_ITEMS: MenuItem[] = [
   { id: 'beb-11', category: 'bebidas', name: 'Suco Natural com Água (2 Frutas)', price: 20, image: require('../../assets/menu/sucos-naturais.jpg') },
   { id: 'beb-12', category: 'bebidas', name: 'Suco Natural com Leite (2 Frutas)', price: 23, image: require('../../assets/menu/sucos-naturais.jpg') },
   { id: 'beb-13', category: 'bebidas', name: 'Cerveja Amstel (350ml)', price: 8, image: require('../../assets/menu/cervejas.png') },
+  { id: 'beb-14', category: 'bebidas', name: 'Gelo de Coco', price: 10, image: require('../../assets/menu/gelo-de-coco.webp') },
 
   // Drinks
   { id: 'dri-1', category: 'drinks', name: 'Caipirinha (1 Fruta) - Pinga', price: 23, image: require('../../assets/menu/caipirinhas.jpg') },

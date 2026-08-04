@@ -22,7 +22,9 @@ import { LegalDocument } from '../components/LegalDocument';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
+import { sendPasswordReset } from '../services/adminApi';
 import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { showAlert } from '../utils/alert';
 
 const AWNING_COLORS = [
   colors.danger,
@@ -71,6 +73,7 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [legalDoc, setLegalDoc] = useState<'privacy' | 'terms' | null>(null);
   const { contentStyle } = useResponsiveContent(440);
@@ -171,6 +174,27 @@ export function LoginScreen() {
     if (!ok) {
       setError(loginError ?? 'E-mail ou senha inválidos.');
       runShake();
+    }
+  };
+
+  // Sem isso, quem esquece a senha (ou é o único admin da organização) fica
+  // sem nenhuma forma de recuperar a conta — o reset de senha por um outro
+  // admin (ver UserManagementScreen) só existe pra quem já está logado.
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError('Informe seu e-mail para recuperar a senha.');
+      runShake();
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      await sendPasswordReset(email);
+      showAlert('E-mail enviado', `Enviamos um link de redefinição de senha para ${email.trim()}.`);
+    } catch (err: any) {
+      setError(err?.message ?? 'Não foi possível enviar o e-mail de redefinição.');
+      runShake();
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -426,6 +450,19 @@ export function LoginScreen() {
                 </Pressable>
               </View>
 
+              {mode === 'login' && (
+                <Pressable
+                  hitSlop={8}
+                  onPress={handleForgotPassword}
+                  disabled={resettingPassword}
+                  style={styles.forgotPasswordWrap}
+                >
+                  <Text style={styles.forgotPasswordText}>
+                    {resettingPassword ? 'Enviando…' : 'Esqueceu a senha?'}
+                  </Text>
+                </Pressable>
+              )}
+
               {error ? (
                 <View style={styles.errorBox}>
                   <Ionicons name="alert-circle" size={14} color={colors.danger} />
@@ -674,6 +711,15 @@ const styles = StyleSheet.create({
     ...typography.bodyLg,
     color: colors.textPrimary,
     height: '100%',
+  },
+  forgotPasswordWrap: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+  },
+  forgotPasswordText: {
+    ...typography.bodySm,
+    color: colors.primary,
+    fontFamily: nunitoFontFamily.bold,
   },
   errorBox: {
     flexDirection: 'row',
