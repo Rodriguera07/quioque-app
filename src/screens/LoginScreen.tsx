@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -18,7 +19,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
+import { HeroWave } from '../components/HeroWave';
 import { LegalDocument } from '../components/LegalDocument';
+import { LoginHeroBackground } from '../components/LoginHeroBackground';
+import { LoginHeroScene } from '../components/LoginHeroScene';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
@@ -26,20 +30,19 @@ import { sendPasswordReset } from '../services/adminApi';
 import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
 import { showAlert } from '../utils/alert';
 
-const AWNING_COLORS = [
-  colors.danger,
-  colors.surface,
-  colors.emerald,
-  colors.surface,
-  colors.sand,
-  colors.surface,
-];
-
-// Cores extraídas do próprio logo (ver assets/icon.png), só usadas aqui na
-// tela de login — o resto do app mantém o teal/areia do tema.
+// Paleta "mar ao amanhecer" usada só no hero desta tela (ver mockup de
+// design) — o resto do app mantém o teal/areia padrão de `theme/colors.ts`.
 const HERO = {
   shadowColor: '#0E0047',
-  brandBlue: '#1F7BFF',
+  seaLight: '#2a9a89',
+  sea: '#17756a',
+  seaDeep: '#0b4a42',
+  trailerText: '#8fe0d0',
+  leadText: '#cdeae3',
+  bronzeLight: '#d9a648',
+  bronze: '#c68f34',
+  bronzeDeep: '#9a6a1c',
+  tabTrack: '#e7dcc4',
 };
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
@@ -88,8 +91,8 @@ export function LoginScreen() {
   const isCompact = isShort || mode === 'signup';
   // Cadastro + tela baixa é a combinação mais apertada (4 campos + selo) —
   // encolhe o selo ainda mais só nesse caso pra sobrar espaço pro formulário.
-  const heroHeight = mode === 'signup' && isShort ? 44 : isShort ? 60 : isCompact ? 80 : 132;
-  const showFeatures = mode === 'login' && !isShort;
+  const heroHeight = mode === 'signup' && isShort ? 44 : isShort ? 60 : isCompact ? 80 : 108;
+  const showDecor = mode === 'login' && !isShort;
   const showIntro = !(mode === 'signup' && isShort);
   const fieldGapStyle = { marginTop: isCompact ? spacing.xs : spacing.md };
 
@@ -107,8 +110,8 @@ export function LoginScreen() {
     }).start();
   }, [enter]);
 
-  // Ilustração do topo flutua suavemente sem parar — dá vida à tela sem
-  // disputar atenção com o formulário.
+  // Logo flutua suavemente sem parar — dá vida à tela sem disputar atenção
+  // com o formulário.
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
@@ -232,7 +235,7 @@ export function LoginScreen() {
       { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) },
     ],
   };
-  const cardStyle = {
+  const sheetStyle = {
     opacity: enter,
     transform: [
       { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) },
@@ -249,55 +252,64 @@ export function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
-        <View style={styles.awning}>
-          {AWNING_COLORS.map((c, i) => (
-            <View key={i} style={[styles.awningStripe, { backgroundColor: c }]} />
-          ))}
-        </View>
-
         <ScrollView
-          contentContainerStyle={[styles.container, isCompact && styles.containerCompact, contentStyle]}
+          contentContainerStyle={[styles.scroll, contentStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={[styles.brandWrap, isCompact && styles.brandWrapCompact, brandStyle]}>
-            <Animated.View
-              style={[
-                styles.logoBadge,
-                { width: heroHeight, height: heroHeight, transform: [{ translateY: heroFloatY }] },
-              ]}
-            >
-              <Image
-                source={require('../../assets/icon.png')}
-                style={styles.logoImage}
-                resizeMode="cover"
-              />
+          <View style={[styles.hero, isCompact && styles.heroCompact]}>
+            <LoginHeroBackground />
+
+            <Animated.View style={[styles.brandWrap, brandStyle]}>
+              <Animated.View
+                style={[
+                  styles.logoBadge,
+                  { width: heroHeight, height: heroHeight, transform: [{ translateY: heroFloatY }] },
+                ]}
+              >
+                <Image
+                  source={require('../../assets/icon.png')}
+                  style={styles.logoImage}
+                  resizeMode="cover"
+                />
+              </Animated.View>
+
+              <Text style={styles.brandTiny}>TRAILER</Text>
+              <Text style={styles.brandBig}>MAR AZUL</Text>
+
+              <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
+                <Text style={styles.brandSub}>{welcome.title}</Text>
+                {showIntro && <Text style={styles.brandIntro}>{welcome.subtitle}</Text>}
+              </Animated.View>
+
+              {showDecor && (
+                <View style={styles.featureRow}>
+                  {FEATURES.map((f) => (
+                    <View key={f.label} style={styles.featureBadge}>
+                      <Ionicons name={f.icon} size={13} color={HERO.leadText} />
+                      <Text style={styles.featureBadgeText}>{f.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </Animated.View>
 
-            <Text style={styles.brandTiny}>TRAILER</Text>
-            <Text style={styles.brandBig}>MAR AZUL</Text>
+            {showDecor && <LoginHeroScene />}
 
-            <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
-              <Text style={styles.brandSub}>{welcome.title}</Text>
-              {showIntro && <Text style={styles.brandIntro}>{welcome.subtitle}</Text>}
-            </Animated.View>
+            <HeroWave color={colors.background} />
+          </View>
 
-            {showFeatures && (
-              <View style={styles.featureRow}>
-                {FEATURES.map((f) => (
-                  <View key={f.label} style={styles.featureBadge}>
-                    <Ionicons name={f.icon} size={13} color={colors.emerald} />
-                    <Text style={styles.featureBadgeText}>{f.label}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Animated.View>
-
-          <Animated.View style={cardStyle}>
-            <View style={[styles.card, isCompact && styles.cardCompact]}>
+          <Animated.View style={sheetStyle}>
+            <View style={[styles.sheet, isCompact && styles.sheetCompact]}>
               <View style={[styles.modeSwitch, isCompact && styles.modeSwitchCompact]}>
-                <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]} />
+                <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]}>
+                  <LinearGradient
+                    colors={[HERO.bronzeLight, HERO.bronze, HERO.bronzeDeep]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
                 <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('login')}>
                   <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
                     Entrar
@@ -310,7 +322,7 @@ export function LoginScreen() {
                 </AnimatedPressable>
               </View>
 
-              <Text style={[styles.cardLabel, isCompact && styles.cardLabelCompact]}>
+              <Text style={[styles.sheetLabel, isCompact && styles.sheetLabelCompact]}>
                 {mode === 'login' ? 'ACESSO AO CAIXA' : 'CRIAR CONTA DO QUIOSQUE'}
               </Text>
 
@@ -327,7 +339,7 @@ export function LoginScreen() {
                     <Ionicons
                       name="storefront-outline"
                       size={17}
-                      color={focusedField === 'org' ? colors.sand : colors.textMuted}
+                      color={focusedField === 'org' ? HERO.sea : colors.textMuted}
                     />
                     <TextInput
                       value={orgName}
@@ -355,7 +367,7 @@ export function LoginScreen() {
                     <Ionicons
                       name="person-outline"
                       size={17}
-                      color={focusedField === 'name' ? colors.sand : colors.textMuted}
+                      color={focusedField === 'name' ? HERO.sea : colors.textMuted}
                     />
                     <TextInput
                       value={displayName}
@@ -387,7 +399,7 @@ export function LoginScreen() {
                 <Ionicons
                   name="mail-outline"
                   size={17}
-                  color={focusedField === 'user' ? colors.sand : colors.textMuted}
+                  color={focusedField === 'user' ? HERO.sea : colors.textMuted}
                 />
                 <TextInput
                   value={email}
@@ -418,7 +430,7 @@ export function LoginScreen() {
                 <Ionicons
                   name="lock-closed-outline"
                   size={17}
-                  color={focusedField === 'pass' ? colors.sand : colors.textMuted}
+                  color={focusedField === 'pass' ? HERO.sea : colors.textMuted}
                 />
                 <TextInput
                   value={password}
@@ -475,6 +487,12 @@ export function LoginScreen() {
                 onPress={handleSubmit}
                 disabled={loading}
               >
+                <LinearGradient
+                  colors={[HERO.bronzeLight, HERO.bronze, HERO.bronzeDeep]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
                 <Text style={styles.enterBtnText}>
                   {loading
                     ? mode === 'login'
@@ -534,34 +552,27 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  awning: {
-    flexDirection: 'row',
-    height: 6,
-  },
-  awningStripe: {
-    flex: 1,
-  },
-  container: {
+  scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
   },
-  containerCompact: {
-    paddingVertical: spacing.md,
+  hero: {
+    position: 'relative',
+    overflow: 'hidden',
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: HERO.sea,
+  },
+  heroCompact: {
+    paddingTop: spacing.lg,
   },
   brandWrap: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
-  },
-  brandWrapCompact: {
-    marginBottom: spacing.md,
   },
   logoBadge: {
     borderRadius: radius.xxl,
     overflow: 'hidden',
     shadowColor: HERO.shadowColor,
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
@@ -573,25 +584,25 @@ const styles = StyleSheet.create({
   },
   brandTiny: {
     ...typography.label,
-    color: colors.emerald,
+    color: HERO.trailerText,
     letterSpacing: 4,
   },
   brandBig: {
     ...typography.display,
-    fontSize: 32,
-    color: HERO.brandBlue,
+    fontSize: 30,
+    color: colors.white,
     letterSpacing: 1,
     marginTop: 2,
   },
   brandSub: {
     ...typography.h3,
     fontFamily: nunitoFontFamily.extraBold,
-    color: colors.textPrimary,
+    color: colors.white,
     marginTop: spacing.sm,
   },
   brandIntro: {
     ...typography.bodySm,
-    color: colors.textMuted,
+    color: HERO.leadText,
     textAlign: 'center',
     lineHeight: 18,
     marginTop: 3,
@@ -608,7 +619,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.emeraldMuted,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
@@ -616,29 +629,26 @@ const styles = StyleSheet.create({
   featureBadgeText: {
     ...typography.caption,
     fontFamily: nunitoFontFamily.bold,
-    color: colors.textSecondary,
+    color: '#eafaf6',
   },
-  card: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderRadius: radius.xxl,
-    padding: spacing.lg,
+  sheet: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    marginTop: -18,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
-    shadowColor: HERO.shadowColor,
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 4,
   },
-  cardCompact: {
-    padding: spacing.sm,
+  sheetCompact: {
+    paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
   modeSwitch: {
     position: 'relative',
     flexDirection: 'row',
-    backgroundColor: colors.surfaceHighlight,
+    backgroundColor: HERO.tabTrack,
     borderRadius: radius.full,
     padding: 4,
     marginBottom: spacing.lg,
@@ -652,9 +662,9 @@ const styles = StyleSheet.create({
     bottom: 4,
     width: '50%',
     borderRadius: radius.full,
-    backgroundColor: colors.sand,
-    shadowColor: colors.sand,
-    shadowOpacity: 0.3,
+    overflow: 'hidden',
+    shadowColor: HERO.bronzeDeep,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
@@ -673,7 +683,7 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
     fontFamily: nunitoFontFamily.bold,
   },
-  cardLabel: {
+  sheetLabel: {
     ...typography.caption,
     fontFamily: monoFontFamily,
     letterSpacing: 2.5,
@@ -681,7 +691,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
-  cardLabelCompact: {
+  sheetLabelCompact: {
     marginBottom: spacing.sm,
   },
   fieldLabel: {
@@ -692,10 +702,10 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceHighlight,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: colors.border,
     paddingHorizontal: spacing.sm,
     height: 50,
     gap: spacing.xs,
@@ -704,7 +714,7 @@ const styles = StyleSheet.create({
     height: 44,
   },
   inputWrapFocused: {
-    borderColor: colors.sand,
+    borderColor: HERO.sea,
   },
   input: {
     flex: 1,
@@ -718,7 +728,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     ...typography.bodySm,
-    color: colors.primary,
+    color: HERO.sea,
     fontFamily: nunitoFontFamily.bold,
   },
   errorBox: {
@@ -741,10 +751,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.sand,
     borderRadius: radius.lg,
     height: 54,
     marginTop: spacing.xl,
+    overflow: 'hidden',
+    shadowColor: HERO.bronzeDeep,
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   enterBtnCompact: {
     height: 48,
@@ -765,7 +780,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   legalLink: {
-    color: colors.primary,
+    color: HERO.sea,
     fontFamily: nunitoFontFamily.bold,
   },
   legalModalHeader: {
