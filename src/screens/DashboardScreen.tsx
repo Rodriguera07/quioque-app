@@ -9,6 +9,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { PulseDot } from '../components/PulseDot';
+import { SubscriptionReminderBanner } from '../components/SubscriptionReminderBanner';
 import { TableCard } from '../components/TableCard';
 import { WaveDivider } from '../components/WaveDivider';
 import { useAuthStore } from '../context/useAuthStore';
@@ -240,6 +241,8 @@ export function DashboardScreen({ navigation }: Props) {
           </AnimatedPressable>
         </View>
       </View>
+
+      {isAdmin && <SubscriptionReminderBanner />}
 
       <View style={styles.heroCard}>
         <LinearGradient
