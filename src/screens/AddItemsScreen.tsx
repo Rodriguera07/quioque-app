@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +20,7 @@ import { CATEGORY_ICONS, CATEGORY_LABELS } from '../data/menu';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { MenuCategory, MenuItem } from '../types';
 import { formatCurrency } from '../utils/format';
 
@@ -93,8 +92,9 @@ export function AddItemsScreen({ navigation, route }: Props) {
 
         {orderItem ? (
           <View style={styles.stepper}>
-            <TouchableOpacity
+            <AnimatedPressable
               style={styles.stepBtn}
+              stateLayerColor={orderItem.quantity === 1 ? colors.danger : colors.onSurface}
               accessibilityLabel={`Diminuir quantidade de ${item.name}`}
               onPress={() =>
                 orderItem.quantity === 1
@@ -107,19 +107,21 @@ export function AddItemsScreen({ navigation, route }: Props) {
                 size={16}
                 color={orderItem.quantity === 1 ? colors.danger : colors.textPrimary}
               />
-            </TouchableOpacity>
+            </AnimatedPressable>
             <Text style={styles.qty}>{orderItem.quantity}</Text>
-            <TouchableOpacity
+            <AnimatedPressable
               style={styles.stepBtn}
+              stateLayerColor={colors.onSurface}
               accessibilityLabel={`Aumentar quantidade de ${item.name}`}
               onPress={() => incrementItem(tableId, orderItem.id)}
             >
               <Ionicons name="add" size={16} color={colors.textPrimary} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
         ) : (
           <AnimatedPressable
             style={styles.addBtn}
+            stateLayerColor={colors.white}
             accessibilityLabel={`Adicionar ${item.name}`}
             onPress={() => addItem(tableId, item, 1)}
           >
@@ -138,9 +140,13 @@ export function AddItemsScreen({ navigation, route }: Props) {
           <Text style={styles.title}>Adicionar Itens</Text>
           <Text style={styles.subtitle}>Mesa {table?.label}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+        <AnimatedPressable
+          onPress={() => navigation.goBack()}
+          style={styles.closeBtn}
+          stateLayerColor={colors.onSurface}
+        >
           <Ionicons name="close" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
       <View style={[styles.searchWrap, contentStyle]}>
@@ -154,9 +160,9 @@ export function AddItemsScreen({ navigation, route }: Props) {
           autoCorrect={false}
         />
         {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')} accessibilityLabel="Limpar busca">
+          <AnimatedPressable onPress={() => setSearch('')} accessibilityLabel="Limpar busca">
             <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          </AnimatedPressable>
         )}
       </View>
 
@@ -173,6 +179,7 @@ export function AddItemsScreen({ navigation, route }: Props) {
               <AnimatedPressable
                 key={cat}
                 style={[styles.categoryChip, active && styles.categoryChipActive]}
+                stateLayerColor={active ? colors.primary : colors.onSurface}
                 onPress={() => setActiveCategory(cat)}
               >
                 {cat !== 'all' && (
@@ -247,18 +254,19 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.medium,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     marginHorizontal: spacing.lg,
     paddingHorizontal: spacing.sm,
     height: 44,
@@ -273,7 +281,7 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.outlineVariant,
     marginBottom: spacing.md,
   },
   categoryRow: {
@@ -288,10 +296,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -322,17 +331,16 @@ const styles = StyleSheet.create({
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     gap: spacing.sm,
+    ...elevationShadow(1),
   },
   itemIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -340,8 +348,8 @@ const styles = StyleSheet.create({
   itemThumb: {
     width: 48,
     height: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceElevated,
+    borderRadius: shape.medium,
+    backgroundColor: colors.surfaceContainerHigh,
   },
   itemName: {
     ...typography.h3,
@@ -361,7 +369,8 @@ const styles = StyleSheet.create({
   addBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     backgroundColor: colors.emerald,
     alignItems: 'center',
     justifyContent: 'center',
@@ -374,10 +383,9 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.full,
+    overflow: 'hidden',
   },
   stepBtn: {
     width: 32,
@@ -394,6 +402,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
 });

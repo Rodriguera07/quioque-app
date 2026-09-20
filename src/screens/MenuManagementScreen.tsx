@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -10,7 +9,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,13 +18,13 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { CATEGORY_ICONS, CATEGORY_LABELS } from '../data/menu';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
-import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { TabScreenProps } from '../navigation/types';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { MenuCategory, MenuItem } from '../types';
 import { confirmAlert, showAlert } from '../utils/alert';
 import { generateId } from '../utils/id';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'MenuManagement'>;
+type Props = TabScreenProps<'Produtos'>;
 type CategoryFilter = MenuCategory | 'all';
 
 const CATEGORIES: MenuCategory[] = ['bebidas', 'drinks', 'doses', 'porcoes', 'pasteis'];
@@ -86,7 +84,6 @@ export function MenuManagementScreen({ navigation }: Props) {
   };
 
   const handleBack = () => {
-    navigation.goBack();
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
@@ -131,9 +128,14 @@ export function MenuManagementScreen({ navigation }: Props) {
         resizeMode="contain"
       />
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBackPress} style={styles.backBtn} accessibilityLabel="Voltar">
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <AnimatedPressable
+          onPress={handleGoBackPress}
+          style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
+          accessibilityLabel="Abrir menu"
+        >
+          <Ionicons name="menu" size={22} color={colors.textPrimary} />
+        </AnimatedPressable>
         <Text style={styles.title}>Cardápio</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -152,6 +154,7 @@ export function MenuManagementScreen({ navigation }: Props) {
               <AnimatedPressable
                 key={f}
                 style={[styles.filterChip, active && styles.filterChipActive]}
+                stateLayerColor={active ? colors.primary : colors.onSurface}
                 onPress={() => setActiveFilter(f)}
               >
                 {f !== 'all' && (
@@ -211,13 +214,14 @@ export function MenuManagementScreen({ navigation }: Props) {
                           style={styles.priceInput}
                         />
                       </View>
-                      <TouchableOpacity
+                      <AnimatedPressable
                         onPress={() => setRemoveTarget(item.id)}
                         style={styles.removeBtn}
+                        stateLayerColor={colors.danger}
                         accessibilityLabel={`Remover ${item.name || 'item'}`}
                       >
                         <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                      </TouchableOpacity>
+                      </AnimatedPressable>
                     </View>
                   ))}
 
@@ -225,7 +229,11 @@ export function MenuManagementScreen({ navigation }: Props) {
                     <Text style={styles.emptySection}>Nenhum item nesta categoria ainda.</Text>
                   )}
 
-                  <AnimatedPressable style={styles.addRow} onPress={() => handleAddItem(cat)}>
+                  <AnimatedPressable
+                    style={styles.addRow}
+                    stateLayerColor={colors.primary}
+                    onPress={() => handleAddItem(cat)}
+                  >
                     <Ionicons name="add-circle-outline" size={17} color={colors.primary} />
                     <Text style={styles.addRowText}>Adicionar item</Text>
                   </AnimatedPressable>
@@ -287,10 +295,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -300,7 +307,7 @@ const styles = StyleSheet.create({
   },
   filterSection: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.outlineVariant,
     marginBottom: spacing.sm,
   },
   filterScroll: {
@@ -320,10 +327,11 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -361,7 +369,7 @@ const styles = StyleSheet.create({
   sectionIconWrap: {
     width: 26,
     height: 26,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -378,11 +386,10 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   card: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.xs,
+    ...elevationShadow(1),
   },
   itemRow: {
     flexDirection: 'row',
@@ -396,8 +403,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     ...typography.body,
     color: colors.textPrimary,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     height: 42,
   },
@@ -405,8 +412,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.xs,
     height: 42,
     width: 84,
@@ -428,7 +435,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     flexShrink: 0,
-    borderRadius: 18,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.dangerMuted,
@@ -446,7 +454,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: spacing.sm,
     marginTop: spacing.xxs,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
+    overflow: 'hidden',
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.primary,
@@ -459,6 +468,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
 });

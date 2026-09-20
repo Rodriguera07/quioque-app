@@ -1,11 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { getTableCurrentTotal } from '../context/usePosStore';
-import { colors, monoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, shape, spacing } from '../theme';
+import { dashboardPalette } from '../theme/dashboardPalette';
 import { Table } from '../types';
 import { formatCurrency, formatElapsed } from '../utils/format';
 import { AnimatedPressable } from './AnimatedPressable';
-import { TableTimeRing } from './TableTimeRing';
 
 interface Props {
   table: Table;
@@ -13,12 +14,11 @@ interface Props {
   style?: ViewStyle;
 }
 
-const RING_MAX_MINUTES = 90;
-
-function getUrgency(minutes: number) {
-  if (minutes >= 60) return colors.danger;
-  if (minutes >= 30) return colors.sand;
-  return colors.emerald;
+// Semáforo de atenção: mesa parada há muito tempo vira prioridade visual.
+function getStatusColor(minutes: number) {
+  if (minutes >= 180) return dashboardPalette.rose;
+  if (minutes >= 90) return dashboardPalette.amber;
+  return dashboardPalette.teal500;
 }
 
 function getElapsedMinutes(iso: string) {
@@ -29,22 +29,26 @@ export function TableCard({ table, onPress, style }: Props) {
   const total = getTableCurrentTotal(table);
   const itemCount = table.items.reduce((sum, i) => sum + i.quantity, 0);
   const minutes = getElapsedMinutes(table.openedAt);
-  const accent = getUrgency(minutes);
-  const progress = Math.min(1, minutes / RING_MAX_MINUTES);
+  const accent = getStatusColor(minutes);
 
   return (
-    <AnimatedPressable style={[styles.card, { borderColor: accent }, style]} onPress={onPress}>
+    <AnimatedPressable
+      style={[styles.card, { backgroundColor: `${accent}0F`, borderColor: `${accent}4D` }, style]}
+      stateLayerColor={accent}
+      onPress={onPress}
+    >
       <View style={styles.topRow}>
-        <TableTimeRing progress={progress} color={accent}>
-          <Text style={styles.ringLabel}>{table.label}</Text>
-        </TableTimeRing>
-        <View style={[styles.elapsedPill, { backgroundColor: `${accent}26` }]}>
-          <Text style={[styles.elapsed, { color: accent }]}>{formatElapsed(table.openedAt)}</Text>
+        <View style={[styles.numBadge, { backgroundColor: accent }]}>
+          <Text style={styles.numBadgeText}>{table.label}</Text>
+        </View>
+        <View style={[styles.tempoPill, { backgroundColor: `${accent}24` }]}>
+          <Ionicons name="time-outline" size={11} color={accent} />
+          <Text style={[styles.tempoText, { color: accent }]}>{formatElapsed(table.openedAt)}</Text>
         </View>
       </View>
 
       <Text style={styles.total}>{formatCurrency(total)}</Text>
-      <Text style={styles.metaText}>{itemCount} itens</Text>
+      <Text style={styles.metaText}>{itemCount} {itemCount === 1 ? 'item' : 'itens'}</Text>
     </AnimatedPressable>
   );
 }
@@ -52,38 +56,52 @@ export function TableCard({ table, onPress, style }: Props) {
 const styles = StyleSheet.create({
   card: {
     width: '48%',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    padding: spacing.md,
+    borderRadius: shape.medium,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: spacing.sm,
+    minHeight: 96,
+    justifyContent: 'space-between',
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  ringLabel: {
-    ...typography.h3,
-    color: colors.textPrimary,
+  numBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  elapsedPill: {
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+  numBadgeText: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 14,
+    color: colors.white,
   },
-  elapsed: {
-    ...typography.caption,
-    fontFamily: monoFontFamily,
+  tempoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    borderRadius: shape.full,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  tempoText: {
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 10.5,
   },
   total: {
-    ...typography.h3,
-    fontFamily: monoFontFamily,
-    color: colors.emerald,
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 16,
+    color: colors.textPrimary,
     marginTop: spacing.sm,
   },
   metaText: {
-    ...typography.caption,
-    color: colors.textMuted,
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 11,
+    color: colors.textSecondary,
     marginTop: 2,
   },
 });

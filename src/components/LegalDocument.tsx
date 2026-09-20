@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { LegalDoc } from '../content/legal';
 
 interface Props {
@@ -51,11 +51,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   card: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
+    ...elevationShadow(1),
   },
   section: {
     marginBottom: spacing.lg,

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, shape, spacing, typography } from '../theme';
 
 type Props = {
   value: Date;
@@ -54,10 +54,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xxs,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderColor: colors.outlineVariant,
+    borderRadius: shape.small,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     minHeight: 44,

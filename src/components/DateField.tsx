@@ -1,8 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { Platform, StyleSheet, Text } from 'react-native';
+import { AnimatedPressable } from './AnimatedPressable';
+import { colors, shape, spacing, typography } from '../theme';
 import { formatDateLabel } from '../utils/format';
 
 type Props = {
@@ -21,10 +22,14 @@ export function DateField({ value, onChange, maximumDate }: Props) {
 
   return (
     <>
-      <TouchableOpacity style={styles.field} onPress={() => setOpen(true)}>
+      <AnimatedPressable
+        style={styles.field}
+        stateLayerColor={colors.onSurface}
+        onPress={() => setOpen(true)}
+      >
         <Ionicons name="calendar-outline" size={15} color={colors.textMuted} />
         <Text style={styles.text}>{formatDateLabel(value.toISOString())}</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
       {open && (
         <DateTimePicker
           value={value}
@@ -44,12 +49,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xxs,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderColor: colors.outlineVariant,
+    borderRadius: shape.small,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    overflow: 'hidden',
   },
   text: {
     ...typography.bodySm,

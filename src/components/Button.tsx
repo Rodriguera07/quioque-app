@@ -1,7 +1,6 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ActivityIndicator, PressableProps, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { coloredShadow, colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { AnimatedPressable } from './AnimatedPressable';
 
 type Variant = 'primary' | 'emerald' | 'outline' | 'ghost' | 'danger';
@@ -17,6 +16,10 @@ interface Props extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
 }
 
+// Botões no padrão Material 3: forma "full" (pílula) por padrão, cor sólida
+// em vez de gradiente, e camada de estado (ripple/fade) ao toque em vez de
+// só a escala. `variant` mapeia para os papéis do M3 — Filled (primary /
+// emerald / danger), Outlined e Filled tonal (ghost).
 export function Button({
   label,
   variant = 'primary',
@@ -28,38 +31,30 @@ export function Button({
   disabled,
   ...rest
 }: Props) {
-  const variantStyle = variantStyles[variant];
+  const v = variantStyles[variant];
   const isDisabled = disabled || loading;
 
   return (
     <AnimatedPressable
       disabled={isDisabled}
+      scaleTo={0.98}
+      stateLayerColor={v.stateLayer}
       style={[
         styles.base,
         size === 'lg' ? styles.lg : styles.md,
-        variantStyle.shadow,
-        variantStyle.flatContainer,
+        v.shadow,
+        v.container,
         fullWidth && styles.fullWidth,
         style,
       ]}
       {...rest}
     >
-      {variantStyle.gradient && (
-        <LinearGradient
-          colors={variantStyle.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
       {loading ? (
-        <ActivityIndicator color={variantStyle.text.color as string} />
+        <ActivityIndicator color={v.text.color as string} />
       ) : (
         <View style={styles.content}>
           {icon}
-          <Text style={[styles.label, variantStyle.text, icon ? { marginLeft: spacing.xs } : null]}>
-            {label}
-          </Text>
+          <Text style={[styles.label, v.text, icon ? { marginLeft: spacing.xs } : null]}>{label}</Text>
         </View>
       )}
     </AnimatedPressable>
@@ -67,44 +62,46 @@ export function Button({
 }
 
 interface VariantStyle {
-  gradient?: [string, string];
-  flatContainer: ViewStyle;
+  container: ViewStyle;
   shadow: ViewStyle;
   text: { color: string };
+  stateLayer: string;
 }
 
 const variantStyles: Record<Variant, VariantStyle> = {
   primary: {
-    gradient: [colors.primary, '#0A7186'],
-    flatContainer: {},
-    shadow: coloredShadow(colors.primary),
-    text: { color: colors.white },
+    container: { backgroundColor: colors.primary },
+    shadow: elevationShadow(1),
+    text: { color: colors.onPrimary },
+    stateLayer: colors.onPrimary,
   },
   emerald: {
-    gradient: [colors.emerald, '#0B8871'],
-    flatContainer: {},
-    shadow: coloredShadow(colors.emerald),
-    text: { color: colors.textInverse },
+    container: { backgroundColor: colors.emerald },
+    shadow: elevationShadow(1),
+    text: { color: colors.onSecondary },
+    stateLayer: colors.onSecondary,
   },
   danger: {
-    gradient: [colors.danger, '#C22E45'],
-    flatContainer: {},
-    shadow: coloredShadow(colors.danger),
+    container: { backgroundColor: colors.danger },
+    shadow: elevationShadow(1),
     text: { color: colors.white },
+    stateLayer: colors.white,
   },
   outline: {
-    flatContainer: {
+    container: {
       backgroundColor: 'transparent',
-      borderWidth: 1.5,
-      borderColor: colors.borderLight,
+      borderWidth: 1,
+      borderColor: colors.outline,
     },
     shadow: {},
-    text: { color: colors.textPrimary },
+    text: { color: colors.primary },
+    stateLayer: colors.primary,
   },
   ghost: {
-    flatContainer: { backgroundColor: colors.surfaceHighlight },
+    container: { backgroundColor: colors.surfaceContainerHighest },
     shadow: {},
-    text: { color: colors.textPrimary },
+    text: { color: colors.onSurface },
+    stateLayer: colors.onSurface,
   },
 };
 
@@ -113,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.lg,
+    borderRadius: shape.full,
     overflow: 'hidden',
   },
   content: {
@@ -123,11 +120,11 @@ const styles = StyleSheet.create({
   },
   md: {
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   lg: {
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.xxl,
   },
   fullWidth: {
     width: '100%',

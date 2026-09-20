@@ -11,7 +11,6 @@ import {
   Switch,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +23,7 @@ import { RootStackParamList } from '../navigation/types';
 import { createOrgUser, sendPasswordReset } from '../services/adminApi';
 import { logAuditEvent } from '../services/auditLog';
 import { setOrgUserActive, subscribeOrgUsers } from '../services/firestoreOrg';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { Role, UserProfile } from '../types';
 import { confirmAlert, showAlert } from '../utils/alert';
 
@@ -136,15 +135,16 @@ export function UserManagementScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => {
             navigation.goBack();
             navigation.dispatch(DrawerActions.openDrawer());
           }}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <Text style={styles.title}>Gerenciar Usuários</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -199,6 +199,7 @@ export function UserManagementScreen({ navigation }: Props) {
                   <AnimatedPressable
                     key={r}
                     style={[styles.roleChip, role === r && styles.roleChipActive]}
+                    stateLayerColor={role === r ? colors.white : colors.onSurface}
                     onPress={() => setRole(r)}
                   >
                     <Text style={[styles.roleChipText, role === r && styles.roleChipTextActive]}>
@@ -230,7 +231,11 @@ export function UserManagementScreen({ navigation }: Props) {
               </View>
             </View>
           ) : (
-            <AnimatedPressable style={styles.addBtn} onPress={() => setShowForm(true)}>
+            <AnimatedPressable
+              style={styles.addBtn}
+              stateLayerColor={colors.white}
+              onPress={() => setShowForm(true)}
+            >
               <Ionicons name="person-add-outline" size={19} color={colors.textInverse} />
               <Text style={styles.addBtnText}>Novo usuário</Text>
             </AnimatedPressable>
@@ -268,6 +273,7 @@ export function UserManagementScreen({ navigation }: Props) {
                       accessibilityRole="button"
                       accessibilityLabel="Redefinir senha"
                       style={styles.resetBtn}
+                      stateLayerColor={colors.primary}
                       disabled={resettingUid === user.uid}
                       onPress={() => handleResetPassword(user)}
                     >
@@ -310,10 +316,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -331,7 +336,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     backgroundColor: colors.primary,
-    borderRadius: radius.lg,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     paddingVertical: spacing.md,
     marginBottom: spacing.lg,
     shadowColor: colors.primary,
@@ -345,12 +351,11 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   formCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginBottom: spacing.lg,
+    ...elevationShadow(1),
   },
   formTitle: {
     ...typography.h3,
@@ -364,8 +369,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxs,
   },
   input: {
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     height: 46,
     ...typography.body,
@@ -378,9 +383,10 @@ const styles = StyleSheet.create({
   roleChip: {
     flex: 1,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
   },
   roleChipActive: {
@@ -417,7 +423,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -445,7 +451,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxs,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
     backgroundColor: colors.surfaceHighlight,
   },
   roleBadgeAdmin: {

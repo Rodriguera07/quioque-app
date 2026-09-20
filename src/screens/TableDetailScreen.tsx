@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
@@ -18,7 +18,7 @@ import {
 } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { computeTotals } from '../utils/billing';
 import { formatCurrency, formatTime } from '../utils/format';
 
@@ -67,13 +67,14 @@ export function TableDetailScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
           accessibilityLabel="Voltar"
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <View style={{ flex: 1 }}>
           <View style={styles.titleRow}>
             <Text style={styles.title} numberOfLines={1}>
@@ -83,6 +84,7 @@ export function TableDetailScreen({ navigation, route }: Props) {
               <AnimatedPressable
                 style={styles.renameBtn}
                 scaleTo={0.92}
+                stateLayerColor={colors.white}
                 onPress={openRename}
                 accessibilityLabel="Renomear ou trocar o número da mesa"
                 accessibilityRole="button"
@@ -114,6 +116,7 @@ export function TableDetailScreen({ navigation, route }: Props) {
             <AnimatedPressable
               style={styles.addBtn}
               scaleTo={0.94}
+              stateLayerColor={colors.white}
               onPress={() => navigation.navigate('AddItems', { tableId })}
             >
               <Ionicons name="add-circle" size={20} color={colors.textInverse} />
@@ -185,6 +188,7 @@ export function TableDetailScreen({ navigation, route }: Props) {
                 <View style={styles.stepper}>
                   <AnimatedPressable
                     style={styles.stepBtn}
+                    stateLayerColor={colors.onSurface}
                     accessibilityLabel="Diminuir número de pessoas"
                     disabled={!isOpen || splitLocked || table.splitCount <= MIN_SPLIT_COUNT}
                     onPress={() => setSplitCount(tableId, table.splitCount - 1)}
@@ -194,6 +198,7 @@ export function TableDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.stepperValue}>{table.splitCount}</Text>
                   <AnimatedPressable
                     style={styles.stepBtn}
+                    stateLayerColor={colors.onSurface}
                     accessibilityLabel="Aumentar número de pessoas"
                     disabled={!isOpen || splitLocked || table.splitCount >= MAX_SPLIT_COUNT}
                     onPress={() => setSplitCount(tableId, table.splitCount + 1)}
@@ -288,8 +293,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -310,7 +316,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.sand,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     shadowColor: colors.sand,
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -324,10 +331,10 @@ const styles = StyleSheet.create({
   },
   renameInput: {
     width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.medium,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     paddingHorizontal: spacing.md,
     height: 52,
     marginTop: spacing.md,
@@ -341,8 +348,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   closedBadge: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.extraSmall,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
   },
@@ -372,7 +379,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     shadowColor: colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 10,
@@ -385,10 +393,10 @@ const styles = StyleSheet.create({
     fontFamily: nunitoFontFamily.bold,
   },
   itemsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    overflow: 'hidden',
+    ...elevationShadow(1),
   },
   feeRow: {
     flexDirection: 'row',
@@ -405,13 +413,12 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   splitCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginTop: spacing.lg,
     gap: spacing.md,
+    ...elevationShadow(1),
   },
   stepperRow: {
     flexDirection: 'row',
@@ -425,10 +432,9 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.full,
+    overflow: 'hidden',
   },
   stepBtn: {
     width: 34,
@@ -443,7 +449,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   splitSummary: {
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
     borderWidth: 1,
     borderColor: colors.primaryGlow,
     padding: spacing.md,
@@ -466,7 +472,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopColor: colors.outlineVariant,
     alignItems: 'center',
   },
   splitPerPersonLabel: {
@@ -481,12 +487,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
   },
   summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginTop: spacing.md,
+    ...elevationShadow(1),
   },
   summaryRow: {
     flexDirection: 'row',
@@ -505,7 +510,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
   totalLabel: {
     ...typography.h3,
@@ -518,6 +523,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
 });

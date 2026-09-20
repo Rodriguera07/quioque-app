@@ -11,7 +11,8 @@ import ReanimatedAnimated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { useAuthStore } from '../context/useAuthStore';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, radius, shape, spacing, typography } from '../theme';
+import { dashboardPalette } from '../theme/dashboardPalette';
 import { RootStackParamList } from './types';
 
 type NoParamRoute = {
@@ -31,69 +32,59 @@ interface DrawerItem {
 }
 
 const NAV_ITEMS: DrawerItem[] = [
-  { key: 'Dashboard', label: 'Painel', icon: 'grid-outline', color: colors.emerald, muted: colors.emeraldMuted },
-  { key: 'Reports', label: 'Relatórios', icon: 'bar-chart-outline', color: colors.sand, muted: colors.sandMuted },
   {
     key: 'ClosedTablesHistory',
     label: 'Histórico de Mesas Fechadas',
     icon: 'time-outline',
-    color: colors.primary,
-    muted: colors.primaryMuted,
+    color: dashboardPalette.teal500,
+    muted: `${dashboardPalette.teal500}1F`,
   },
   {
     key: 'UserManagement',
     label: 'Gerenciar Usuários',
     icon: 'people-outline',
-    color: colors.coral,
-    muted: colors.coralMuted,
-    adminOnly: true,
-  },
-  {
-    key: 'MenuManagement',
-    label: 'Cardápio',
-    icon: 'fast-food-outline',
-    color: colors.sand,
-    muted: colors.sandMuted,
+    color: dashboardPalette.rose,
+    muted: `${dashboardPalette.rose}1F`,
     adminOnly: true,
   },
   {
     key: 'AuditLog',
     label: 'Log de Auditoria',
     icon: 'document-text-outline',
-    color: colors.danger,
-    muted: colors.dangerMuted,
+    color: dashboardPalette.amber,
+    muted: `${dashboardPalette.amber}1F`,
     adminOnly: true,
   },
   {
     key: 'ChangePassword',
     label: 'Alterar Senha',
     icon: 'key-outline',
-    color: colors.primary,
-    muted: colors.primaryMuted,
+    color: dashboardPalette.teal700,
+    muted: `${dashboardPalette.teal700}1F`,
     settingsSection: true,
   },
   {
     key: 'PrivacyPolicy',
     label: 'Política de Privacidade',
     icon: 'shield-checkmark-outline',
-    color: colors.emerald,
-    muted: colors.emeraldMuted,
+    color: dashboardPalette.mint,
+    muted: `${dashboardPalette.mint}1F`,
     settingsSection: true,
   },
   {
     key: 'TermsOfUse',
     label: 'Termo de Uso',
     icon: 'document-text-outline',
-    color: colors.sand,
-    muted: colors.sandMuted,
+    color: dashboardPalette.amber,
+    muted: `${dashboardPalette.amber}1F`,
     settingsSection: true,
   },
   {
     key: 'DeleteAccount',
     label: 'Excluir Minha Conta',
     icon: 'trash-outline',
-    color: colors.danger,
-    muted: colors.dangerMuted,
+    color: dashboardPalette.rose,
+    muted: `${dashboardPalette.rose}1F`,
     settingsSection: true,
   },
 ];
@@ -153,6 +144,7 @@ function DrawerNavRow({
     <ReanimatedAnimated.View style={staggerStyle}>
       <AnimatedPressable
         scaleTo={0.97}
+        stateLayerColor={active ? item.color : colors.onSurface}
         accessibilityRole="button"
         accessibilityLabel={item.label}
         style={[styles.item, active && [styles.itemActive, { backgroundColor: item.muted }]]}
@@ -162,7 +154,7 @@ function DrawerNavRow({
         <View
           style={[
             styles.itemIconWrap,
-            { backgroundColor: active ? colors.surface : item.muted },
+            { backgroundColor: active ? colors.surfaceContainerLowest : item.muted },
             active && styles.itemIconWrapActive,
           ]}
         >
@@ -209,7 +201,7 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
     <View style={styles.outer}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <LinearGradient
-          colors={[colors.emerald, colors.primary]}
+          colors={[dashboardPalette.teal700, dashboardPalette.teal900]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -312,6 +304,7 @@ export function AppDrawerContent({ navigation, state }: DrawerContentComponentPr
         <View style={styles.footer}>
           <AnimatedPressable
             scaleTo={0.97}
+            stateLayerColor={colors.white}
             accessibilityRole="button"
             accessibilityLabel="Sair"
             style={styles.logoutBtn}
@@ -344,14 +337,14 @@ const styles = StyleSheet.create({
   // vazar quadrado) acontece só no SafeAreaView interno.
   outer: {
     flex: 1,
-    borderTopRightRadius: radius.xxl,
-    borderBottomRightRadius: radius.xxl,
+    borderTopRightRadius: shape.extraLarge,
+    borderBottomRightRadius: shape.extraLarge,
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderTopRightRadius: radius.xxl,
-    borderBottomRightRadius: radius.xxl,
+    backgroundColor: colors.surfaceContainerLowest,
+    borderTopRightRadius: shape.extraLarge,
+    borderBottomRightRadius: shape.extraLarge,
     overflow: 'hidden',
   },
   header: {
@@ -360,8 +353,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
     overflow: 'hidden',
-    borderBottomLeftRadius: radius.xxl,
-    borderBottomRightRadius: radius.xxl,
+    borderBottomLeftRadius: shape.extraLarge,
+    borderBottomRightRadius: shape.extraLarge,
   },
   headerTexture: {
     ...StyleSheet.absoluteFillObject,
@@ -463,7 +456,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.borderLight,
+    backgroundColor: colors.outlineVariant,
     marginVertical: spacing.md,
     marginHorizontal: spacing.xs,
   },
@@ -473,14 +466,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
+    overflow: 'hidden',
   },
   itemActive: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    ...elevationShadow(1),
   },
   itemAccent: {
     position: 'absolute',
@@ -493,16 +483,12 @@ const styles = StyleSheet.create({
   itemIconWrap: {
     width: 38,
     height: 38,
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemIconWrapActive: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
+    ...elevationShadow(1),
   },
   itemLabel: {
     ...typography.body,
@@ -513,7 +499,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopColor: colors.outlineVariant,
     alignItems: 'center',
     gap: spacing.sm,
   },
@@ -525,9 +511,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: colors.danger,
-    shadowColor: colors.danger,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: dashboardPalette.rose,
+    shadowColor: dashboardPalette.rose,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
@@ -536,7 +523,7 @@ const styles = StyleSheet.create({
   logoutIconWrap: {
     width: 30,
     height: 30,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     alignItems: 'center',
     justifyContent: 'center',
   },

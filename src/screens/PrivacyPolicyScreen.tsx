@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { LegalDocument } from '../components/LegalDocument';
 import { PRIVACY_POLICY } from '../content/legal';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, typography } from '../theme';
+import { colors, shape, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrivacyPolicy'>;
 
@@ -18,15 +19,16 @@ export function PrivacyPolicyScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => {
             navigation.goBack();
             navigation.dispatch(DrawerActions.openDrawer());
           }}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <Text style={styles.title}>Política de Privacidade</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -49,10 +51,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },

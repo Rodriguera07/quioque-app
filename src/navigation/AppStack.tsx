@@ -7,17 +7,15 @@ import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
 import { CloseTableScreen } from '../screens/CloseTableScreen';
 import { ClosedTableDetailScreen } from '../screens/ClosedTableDetailScreen';
 import { ClosedTablesHistoryScreen } from '../screens/ClosedTablesHistoryScreen';
-import { DashboardScreen } from '../screens/DashboardScreen';
 import { DeleteAccountScreen } from '../screens/DeleteAccountScreen';
 import { EndDaySummaryScreen } from '../screens/EndDaySummaryScreen';
-import { MenuManagementScreen } from '../screens/MenuManagementScreen';
 import { OpenTableScreen } from '../screens/OpenTableScreen';
 import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
-import { ReportsScreen } from '../screens/ReportsScreen';
 import { TableDetailScreen } from '../screens/TableDetailScreen';
 import { TermsOfUseScreen } from '../screens/TermsOfUseScreen';
 import { UserManagementScreen } from '../screens/UserManagementScreen';
 import { colors } from '../theme';
+import { MainTabs } from './MainTabs';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -35,7 +33,7 @@ export function AppStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen
         name="OpenTable"
         component={OpenTableScreen}
@@ -52,7 +50,6 @@ export function AppStack() {
         component={CloseTableScreen}
         options={{ presentation: modalPresentation }}
       />
-      <Stack.Screen name="Reports" component={ReportsScreen} />
       <Stack.Screen
         name="EndDaySummary"
         component={EndDaySummaryScreen}
@@ -61,7 +58,6 @@ export function AppStack() {
       <Stack.Screen name="ClosedTablesHistory" component={ClosedTablesHistoryScreen} />
       <Stack.Screen name="ClosedTableDetail" component={ClosedTableDetailScreen} />
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
-      <Stack.Screen name="MenuManagement" component={MenuManagementScreen} />
       <Stack.Screen name="AuditLog" component={AuditLogScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />

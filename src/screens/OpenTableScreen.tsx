@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +16,7 @@ import { Button } from '../components/Button';
 import { usePosStore } from '../context/usePosStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, shape, spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OpenTable'>;
 
@@ -71,9 +70,13 @@ export function OpenTableScreen({ navigation }: Props) {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Abrir Nova Mesa</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+          <AnimatedPressable
+            onPress={() => navigation.goBack()}
+            style={styles.closeBtn}
+            stateLayerColor={colors.onSurface}
+          >
             <Ionicons name="close" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
 
         <ScrollView
@@ -103,6 +106,7 @@ export function OpenTableScreen({ navigation }: Props) {
                 <AnimatedPressable
                   key={q}
                   style={[styles.chip, label === q && styles.chipActive, isDuplicate && styles.chipDuplicate]}
+                  stateLayerColor={label === q ? colors.primary : colors.onSurface}
                   onPress={() => applyLabel(q)}
                 >
                   <Text
@@ -157,8 +161,9 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -172,10 +177,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   input: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.medium,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     paddingHorizontal: spacing.md,
     height: 52,
     ...typography.bodyLg,
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.dangerMuted,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     marginTop: spacing.sm,
@@ -203,10 +208,11 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
   },
   chipActive: {
     backgroundColor: colors.primaryMuted,
@@ -240,6 +246,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
 });

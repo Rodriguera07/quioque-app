@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F5ECD8",
+    "backgroundColor": "#F7F3EB",
     "ios": {
       "supportsTablet": true
     },
@@ -26,7 +26,7 @@
       "name": "Trailer Mar Azul",
       "shortName": "Mar Azul",
       "themeColor": "#1F7BFF",
-      "backgroundColor": "#F5ECD8",
+      "backgroundColor": "#F7F3EB",
       "display": "standalone",
       "lang": "pt-BR"
     },

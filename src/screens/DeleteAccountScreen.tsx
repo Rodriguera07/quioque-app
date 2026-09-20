@@ -10,16 +10,16 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, nunitoFontFamily, shape, spacing, typography } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeleteAccount'>;
 
@@ -68,15 +68,16 @@ export function DeleteAccountScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => {
             navigation.goBack();
             navigation.dispatch(DrawerActions.openDrawer());
           }}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <Text style={styles.title}>Excluir Minha Conta</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -205,10 +206,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   warnIconWrap: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: shape.full,
     backgroundColor: colors.dangerMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.xs,
     backgroundColor: colors.dangerMuted,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     padding: spacing.sm,
     marginTop: spacing.lg,
   },
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     height: 46,
     gap: spacing.xs,

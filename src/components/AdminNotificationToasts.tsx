@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../context/useAuthStore';
 import { AUDIT_EVENT_META } from '../data/auditEvents';
 import { subscribeAuditLog } from '../services/firestoreOrg';
-import { colors, nunitoFontFamily, radius, shadows, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { AuditEventType, AuditLogEntry } from '../types';
 
 // Mesmos eventos que já disparam push (ver notifyAdmins em usePosStore) —
@@ -134,18 +134,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     width: '100%',
     maxWidth: 420,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.large,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    ...shadows.md,
+    ...elevationShadow(3),
   },
   iconWrap: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: shape.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

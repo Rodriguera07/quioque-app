@@ -1,30 +1,41 @@
 import React, { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, radius, shadows, spacing } from '../theme';
+import { colors, elevation, shape, spacing } from '../theme';
+
+type Variant = 'elevated' | 'filled' | 'outlined';
 
 interface Props {
   children: ReactNode;
   style?: ViewStyle;
-  elevated?: boolean;
+  variant?: Variant;
 }
 
-export function Card({ children, style, elevated = false }: Props) {
-  return (
-    <View style={[styles.base, elevated && styles.elevated, style]}>{children}</View>
-  );
+// Card no padrão Material 3: três variantes de superfície — Elevated (sombra,
+// sem borda), Filled (fundo em camada, sem sombra/borda) e Outlined (fundo
+// base, com contorno). Cantos em `shape.large`, como no M3.
+export function Card({ children, style, variant = 'elevated' }: Props) {
+  return <View style={[styles.base, variantStyles[variant], style]}>{children}</View>;
 }
+
+const variantStyles: Record<Variant, ViewStyle> = {
+  elevated: {
+    ...elevation(1),
+    borderWidth: 0,
+  },
+  filled: {
+    backgroundColor: colors.surfaceContainerHigh,
+    borderWidth: 0,
+  },
+  outlined: {
+    backgroundColor: colors.surfaceContainerLowest,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+  },
+};
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.large,
     padding: spacing.md,
-  },
-  elevated: {
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.borderLight,
-    ...shadows.sm,
   },
 });

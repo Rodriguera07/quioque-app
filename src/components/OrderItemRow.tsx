@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AnimatedPressable } from './AnimatedPressable';
 import { CATEGORY_ICONS } from '../data/menu';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, shape, spacing, typography } from '../theme';
 import { OrderItem } from '../types';
 import { formatCurrency } from '../utils/format';
 
@@ -29,8 +30,9 @@ export function OrderItemRow({ item, editable = true, onIncrement, onDecrement, 
 
       {editable ? (
         <View style={styles.stepper}>
-          <TouchableOpacity
+          <AnimatedPressable
             style={[styles.stepBtn, item.quantity === 1 && styles.stepBtnDanger]}
+            stateLayerColor={item.quantity === 1 ? colors.danger : colors.onSurface}
             onPress={item.quantity === 1 ? onRemove : onDecrement}
             accessibilityLabel={item.quantity === 1 ? 'Remover item' : 'Diminuir quantidade'}
           >
@@ -39,15 +41,16 @@ export function OrderItemRow({ item, editable = true, onIncrement, onDecrement, 
               size={14}
               color={item.quantity === 1 ? colors.danger : colors.textPrimary}
             />
-          </TouchableOpacity>
+          </AnimatedPressable>
           <Text style={styles.qty}>{item.quantity}</Text>
-          <TouchableOpacity
+          <AnimatedPressable
             style={[styles.stepBtn, styles.stepBtnAdd]}
+            stateLayerColor={colors.emerald}
             onPress={onIncrement}
             accessibilityLabel="Aumentar quantidade"
           >
             <Ionicons name="add" size={14} color={colors.emerald} />
-          </TouchableOpacity>
+          </AnimatedPressable>
         </View>
       ) : (
         <Text style={styles.qtyStatic}>{item.quantity}x</Text>
@@ -65,13 +68,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.outlineVariant,
     gap: spacing.sm,
   },
   iconWrap: {
     width: 32,
     height: 32,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -96,10 +99,11 @@ const styles = StyleSheet.create({
   stepBtn: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceHighlight,
+    backgroundColor: colors.surfaceContainerHigh,
   },
   stepBtnDanger: {
     backgroundColor: colors.dangerMuted,

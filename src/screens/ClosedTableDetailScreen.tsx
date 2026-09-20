@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { OrderItemRow } from '../components/OrderItemRow';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
 import { PAYMENT_LABELS } from '../utils/payments';
 
@@ -19,9 +20,13 @@ export function ClosedTableDetailScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <AnimatedPressable
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
+        >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Mesa {sale.tableLabel}</Text>
           <Text style={styles.subtitle}>{formatDateLabel(sale.closedAt)}</Text>
@@ -121,8 +126,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -136,8 +142,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   closedBadge: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.extraSmall,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
   },
@@ -150,13 +156,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   infoCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     gap: spacing.xs,
     marginBottom: spacing.lg,
+    ...elevationShadow(1),
   },
   infoRow: {
     flexDirection: 'row',
@@ -173,19 +178,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   itemsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    overflow: 'hidden',
     marginBottom: spacing.lg,
+    ...elevationShadow(1),
   },
   summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginBottom: spacing.lg,
+    ...elevationShadow(1),
   },
   summaryRow: {
     flexDirection: 'row',
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
   totalLabel: {
     ...typography.h3,
@@ -215,11 +219,10 @@ const styles = StyleSheet.create({
     color: colors.emerald,
   },
   paymentCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     paddingHorizontal: spacing.md,
+    ...elevationShadow(1),
   },
   paymentRow: {
     flexDirection: 'row',
@@ -227,7 +230,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     height: 54,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: colors.outlineVariant,
   },
   paymentLabel: {
     ...typography.bodySm,

@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
+import { Button } from '../components/Button';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { PaymentMethodButton } from '../components/PaymentMethodButton';
 import { useResponsiveContent, widthForColumns } from '../hooks/useResponsiveContent';
@@ -15,7 +17,7 @@ import {
   usePosStore,
 } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
-import { colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { showAlert } from '../utils/alert';
 import { computeTotals } from '../utils/billing';
@@ -109,9 +111,13 @@ export function CloseTableScreen({ navigation, route }: Props) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
         <Text style={styles.title}>Fechar Mesa {table.label}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+        <AnimatedPressable
+          onPress={() => navigation.goBack()}
+          style={styles.closeBtn}
+          stateLayerColor={colors.onSurface}
+        >
           <Ionicons name="close" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
 
       <ScrollView
@@ -210,27 +216,28 @@ export function CloseTableScreen({ navigation, route }: Props) {
 
       <View style={[styles.footer, contentStyle]}>
         {hasConsumption ? (
-          <TouchableOpacity
-            style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
+          <Button
+            variant="emerald"
+            size="lg"
             disabled={!selected || confirming}
-            onPress={handleConfirm}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
-            <Text style={styles.confirmText}>
-              {isSplit
+            loading={confirming}
+            icon={<Ionicons name="checkmark-circle-outline" size={20} color={colors.onSecondary} />}
+            label={
+              isSplit
                 ? `Confirmar Pessoa ${currentPersonNumber} · ${formatCurrency(nextAmount)}`
-                : `Confirmar Pagamento · ${formatCurrency(nextAmount)}`}
-            </Text>
-          </TouchableOpacity>
+                : `Confirmar Pagamento · ${formatCurrency(nextAmount)}`
+            }
+            onPress={handleConfirm}
+          />
         ) : (
-          <TouchableOpacity
-            style={styles.confirmBtn}
+          <Button
+            variant="emerald"
+            size="lg"
             disabled={confirming}
+            icon={<Ionicons name="checkmark-circle-outline" size={20} color={colors.onSecondary} />}
+            label="Fechar Mesa sem Cobrança"
             onPress={() => setShowNoConsumptionConfirm(true)}
-          >
-            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
-            <Text style={styles.confirmText}>Fechar Mesa sem Cobrança</Text>
-          </TouchableOpacity>
+          />
         )}
       </View>
 
@@ -266,8 +273,9 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -276,12 +284,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginBottom: spacing.lg,
+    ...elevationShadow(1),
   },
   summaryRow: {
     flexDirection: 'row',
@@ -300,7 +307,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
   totalLabel: {
     ...typography.h3,
@@ -314,8 +321,8 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
   },
   splitProgressCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     borderWidth: 1,
     borderColor: colors.primaryGlow,
     padding: spacing.md,
@@ -338,13 +345,13 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.surfaceHighlight,
+    borderRadius: shape.full,
+    backgroundColor: colors.surfaceContainerHigh,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: radius.full,
+    borderRadius: shape.full,
     backgroundColor: colors.primary,
   },
   chipsRow: {
@@ -355,10 +362,10 @@ const styles = StyleSheet.create({
   personChip: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: shape.full,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -382,10 +389,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.large,
     padding: spacing.md,
   },
   noConsumptionText: {
@@ -396,22 +401,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  confirmBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.emerald,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.xs,
-  },
-  confirmBtnDisabled: {
-    opacity: 0.4,
-  },
-  confirmText: {
-    ...typography.h3,
-    color: colors.textInverse,
+    borderTopColor: colors.outlineVariant,
   },
 });

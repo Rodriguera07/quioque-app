@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { coloredShadow, colors, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { coloredShadow, colors, elevationShadow, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { AnimatedPressable } from './AnimatedPressable';
 
 interface Props {
@@ -24,6 +24,7 @@ export function PaymentMethodButton({
   return (
     <AnimatedPressable
       style={[styles.card, style, selected && [styles.cardSelected, { borderColor: color }, coloredShadow(color)]]}
+      stateLayerColor={color}
       onPress={onPress}
     >
       <View style={[styles.iconWrap, { backgroundColor: `${color}1F` }]}>
@@ -38,26 +39,23 @@ const styles = StyleSheet.create({
   card: {
     width: '48%',
     aspectRatio: 1.5,
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
+    overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    shadowColor: colors.textPrimary,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    ...elevationShadow(1),
   },
   cardSelected: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceContainerHighest,
   },
   iconWrap: {
     width: 44,
     height: 44,
-    borderRadius: radius.lg,
+    borderRadius: shape.large,
     alignItems: 'center',
     justifyContent: 'center',
   },

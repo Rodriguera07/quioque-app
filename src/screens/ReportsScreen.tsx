@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { DateField } from '../components/DateField';
@@ -11,13 +10,13 @@ import { ReceiptTornEdge } from '../components/ReceiptTornEdge';
 import { useAuthStore } from '../context/useAuthStore';
 import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
-import { RootStackParamList } from '../navigation/types';
-import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { TabScreenProps } from '../navigation/types';
+import { colors, elevationShadow, monoFontFamily, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { formatCurrency } from '../utils/format';
 import { getPeriodReport } from '../utils/reports';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Reports'>;
+type Props = TabScreenProps<'Relatorios'>;
 
 type PeriodPreset = '7d' | '15d' | '30d' | 'custom';
 
@@ -77,15 +76,13 @@ export function ReportsScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.goBack();
-            navigation.dispatch(DrawerActions.openDrawer());
-          }}
+        <AnimatedPressable
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+          <Ionicons name="menu" size={22} color={colors.textPrimary} />
+        </AnimatedPressable>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.title}>Relatórios</Text>
           <Text style={styles.subtitle}>{formatShortRange(range.start, range.end)}</Text>
@@ -98,6 +95,7 @@ export function ReportsScreen({ navigation }: Props) {
           <AnimatedPressable
             key={p.key}
             style={[styles.presetChip, preset === p.key && styles.presetChipActive]}
+            stateLayerColor={preset === p.key ? colors.white : colors.onSurface}
             onPress={() => handleSelectPreset(p.key)}
           >
             <Text style={[styles.presetText, preset === p.key && styles.presetTextActive]}>
@@ -206,10 +204,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -235,10 +232,11 @@ const styles = StyleSheet.create({
   presetChip: {
     flex: 1,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
   },
   presetChipActive: {
@@ -265,14 +263,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   receipt: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderBottomWidth: 0,
-    borderRadius: radius.xxl,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.extraLarge,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: spacing.lg,
+    ...elevationShadow(1),
   },
   receiptLabel: {
     ...typography.caption,
@@ -311,17 +307,16 @@ const styles = StyleSheet.create({
   stackedBar: {
     flexDirection: 'row',
     height: 12,
-    borderRadius: radius.sm,
+    borderRadius: shape.extraSmall,
     overflow: 'hidden',
     gap: 2,
   },
   paymentCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     paddingHorizontal: spacing.sm,
     marginTop: spacing.sm,
+    ...elevationShadow(1),
   },
   paymentRow: {
     flexDirection: 'row',
@@ -329,7 +324,7 @@ const styles = StyleSheet.create({
     height: 46,
     gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: colors.outlineVariant,
   },
   paymentDot: {
     width: 8,

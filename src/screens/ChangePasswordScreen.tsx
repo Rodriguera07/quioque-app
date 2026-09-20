@@ -10,15 +10,15 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AnimatedPressable } from '../components/AnimatedPressable';
 import { Button } from '../components/Button';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, shape, spacing, typography } from '../theme';
 import { showAlert } from '../utils/alert';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChangePassword'>;
@@ -66,15 +66,16 @@ export function ChangePasswordScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => {
             navigation.goBack();
             navigation.dispatch(DrawerActions.openDrawer());
           }}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <Text style={styles.title}>Alterar Senha</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -195,10 +196,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -211,11 +211,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   card: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
+    ...elevationShadow(1),
   },
   fieldLabel: {
     ...typography.label,
@@ -225,8 +224,8 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     height: 46,
     gap: spacing.xs,

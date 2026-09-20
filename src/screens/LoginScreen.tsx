@@ -13,7 +13,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -27,7 +26,7 @@ import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { sendPasswordReset } from '../services/adminApi';
-import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, monoFontFamily, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { showAlert } from '../utils/alert';
 
 // Paleta "mar ao amanhecer" usada só no hero desta tela (ver mockup de
@@ -310,12 +309,20 @@ export function LoginScreen() {
                     style={StyleSheet.absoluteFillObject}
                   />
                 </Animated.View>
-                <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('login')}>
+                <AnimatedPressable
+                  style={styles.modeTab}
+                  stateLayerColor={colors.onSurface}
+                  onPress={() => switchMode('login')}
+                >
                   <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
                     Entrar
                   </Text>
                 </AnimatedPressable>
-                <AnimatedPressable style={styles.modeTab} onPress={() => switchMode('signup')}>
+                <AnimatedPressable
+                  style={styles.modeTab}
+                  stateLayerColor={colors.onSurface}
+                  onPress={() => switchMode('signup')}
+                >
                   <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
                     Cadastrar
                   </Text>
@@ -484,6 +491,7 @@ export function LoginScreen() {
 
               <AnimatedPressable
                 style={[styles.enterBtn, isCompact && styles.enterBtnCompact]}
+                stateLayerColor={colors.white}
                 onPress={handleSubmit}
                 disabled={loading}
               >
@@ -532,13 +540,14 @@ export function LoginScreen() {
               <Text style={styles.legalModalTitle}>
                 {legalDoc === 'privacy' ? PRIVACY_POLICY.title : TERMS_OF_USE.title}
               </Text>
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => setLegalDoc(null)}
                 style={styles.legalCloseBtn}
+                stateLayerColor={colors.onSurface}
                 accessibilityLabel="Fechar"
               >
                 <Ionicons name="close" size={20} color={colors.textPrimary} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
             {legalDoc ? (
               <LegalDocument doc={legalDoc === 'privacy' ? PRIVACY_POLICY : TERMS_OF_USE} />
@@ -569,7 +578,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoBadge: {
-    borderRadius: radius.xxl,
+    borderRadius: shape.extraLarge,
     overflow: 'hidden',
     shadowColor: HERO.shadowColor,
     shadowOpacity: 0.35,
@@ -622,7 +631,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
-    borderRadius: radius.full,
+    borderRadius: shape.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
   },
@@ -634,8 +643,8 @@ const styles = StyleSheet.create({
   sheet: {
     flex: 1,
     backgroundColor: colors.background,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
+    borderTopLeftRadius: shape.extraLarge,
+    borderTopRightRadius: shape.extraLarge,
     marginTop: -18,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
@@ -649,7 +658,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     flexDirection: 'row',
     backgroundColor: HERO.tabTrack,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
     padding: 4,
     marginBottom: spacing.lg,
   },
@@ -661,7 +670,7 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     width: '50%',
-    borderRadius: radius.full,
+    borderRadius: shape.full,
     overflow: 'hidden',
     shadowColor: HERO.bronzeDeep,
     shadowOpacity: 0.35,
@@ -672,7 +681,8 @@ const styles = StyleSheet.create({
   modeTab: {
     flex: 1,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     alignItems: 'center',
   },
   modeTabText: {
@@ -702,10 +712,10 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: colors.outlineVariant,
     paddingHorizontal: spacing.sm,
     height: 50,
     gap: spacing.xs,
@@ -736,7 +746,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.dangerMuted,
-    borderRadius: radius.md,
+    borderRadius: shape.medium,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     marginTop: spacing.md,
@@ -751,7 +761,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    borderRadius: radius.lg,
+    borderRadius: shape.full,
     height: 54,
     marginTop: spacing.xl,
     overflow: 'hidden',
@@ -798,10 +808,9 @@ const styles = StyleSheet.create({
   legalCloseBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },

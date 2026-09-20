@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { BeachUmbrellaIcon } from '../components/BeachUmbrellaIcon';
@@ -11,7 +10,6 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { PulseDot } from '../components/PulseDot';
 import { SubscriptionReminderBanner } from '../components/SubscriptionReminderBanner';
 import { TableCard } from '../components/TableCard';
-import { WaveDivider } from '../components/WaveDivider';
 import { useAuthStore } from '../context/useAuthStore';
 import {
   getClosedTablesToday,
@@ -21,46 +19,34 @@ import {
   getTopSellingItems,
   usePosStore,
 } from '../context/usePosStore';
-import { colors, nunitoFontFamily, radius, serifFontFamily, spacing } from '../theme';
-import { RootStackParamList } from '../navigation/types';
+import { colors, elevationShadow, nunitoFontFamily, serifFontFamily, shape, spacing } from '../theme';
+import { dashboardPalette } from '../theme/dashboardPalette';
+import { TabScreenProps } from '../navigation/types';
 import { getDaySummary } from '../services/firestoreOrg';
 import { formatDateKey, formatTime } from '../utils/format';
 import { useTick } from '../hooks/useTick';
 import { useResponsiveContent, widthForColumns } from '../hooks/useResponsiveContent';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
+type Props = TabScreenProps<'Painel'>;
 
 type EndDayDialog = 'blocked-open' | 'blocked-empty' | 'confirm' | null;
 
 const TOP_ITEMS_COUNT = 3;
+const SPARK_BAR_MAX_HEIGHT = 30;
 
-// Paleta "sol se pondo sobre o mar" exclusiva do cartão "Caixa do Dia" —
-// não faz parte do tema global porque só é usada aqui, igual à referência.
-const HERO = {
-  gradientStart: '#10938B',
-  gradientEnd: '#0A5551',
-  seaTeal900: '#0A5551',
-  seaTeal700: '#0E857E',
-  seaTeal500: '#18B0A2',
-  liveDot: '#5CF0CE',
-  trendGood: '#8DF3D6',
-  sunLight: '#FFE7B8',
-  sunMid: '#FFB65C',
-  sun500: '#FF9E4D',
-  sun600: '#EF7B36',
-  ambientGlow: 'rgba(255,207,143,0.3)',
-};
+const RANK_COLORS = [dashboardPalette.amber, dashboardPalette.teal500, dashboardPalette.inkSoft];
 
-const RANK_STYLE = [
-  { bg: '#FFE9C7', fg: HERO.sun600 },
-  { bg: '#E4F1EF', fg: HERO.seaTeal700 },
-  { bg: '#F6E7D9', fg: '#B07A47' },
+const QUICK_ACTIONS = [
+  { key: 'abrir', icon: 'add' as const, label: 'Abrir mesa', color: dashboardPalette.teal700 },
+  { key: 'pedido', icon: 'receipt-outline' as const, label: 'Novo pedido', color: dashboardPalette.amber },
+  { key: 'receber', icon: 'cash-outline' as const, label: 'Receber', color: dashboardPalette.teal500 },
+  { key: 'relatorios', icon: 'bar-chart-outline' as const, label: 'Relatórios', color: dashboardPalette.inkSoft },
 ];
 
 function splitCurrencyParts(value: number): { main: string; cents: string } {
   const fixed = Math.max(0, value).toFixed(2);
   const [intPart, centsPart] = fixed.split('.');
-  return { main: `R$ ${Number(intPart).toLocaleString('pt-BR')}`, cents: centsPart };
+  return { main: Number(intPart).toLocaleString('pt-BR'), cents: centsPart };
 }
 
 export function DashboardScreen({ navigation }: Props) {
@@ -76,49 +62,12 @@ export function DashboardScreen({ navigation }: Props) {
   // sumir enquanto o usuário ainda está com o painel aberto na tela.
   const [notifSeenAt, setNotifSeenAt] = useState(() => new Date().toISOString());
   const [yesterdayRevenue, setYesterdayRevenue] = useState<number | null>(null);
+  // Faturamento dos 6 dias anteriores a hoje, para o gráfico de barras da
+  // semana no card "Caixa do dia" — hoje é somado à parte pois é reativo.
+  const [weekHistory, setWeekHistory] = useState<{ label: string; value: number }[] | null>(null);
 
-  // FAB "Abrir mesa": leve flutuação contínua + anel de brilho pulsante, para
-  // reforçar que é a ação primária da tela sem depender só da cor.
-  const fabPulse = useRef(new Animated.Value(0)).current;
-  const fabFloat = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fabPulse, {
-          toValue: 1,
-          duration: 1600,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fabPulse, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ])
-    );
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fabFloat, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fabFloat, {
-          toValue: 0,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulseLoop.start();
-    floatLoop.start();
-    return () => {
-      pulseLoop.stop();
-      floatLoop.stop();
-    };
-  }, [fabPulse, fabFloat]);
-  const fabPulseScale = fabPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
-  const fabPulseOpacity = fabPulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
-  const fabFloatY = fabFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+  const scrollRef = useRef<ScrollView>(null);
+  const mesasSectionY = useRef(0);
 
   const userName = useAuthStore((s) => s.user?.displayName ?? null);
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
@@ -135,21 +84,48 @@ export function DashboardScreen({ navigation }: Props) {
   const openTablesTotal = openTables.reduce((sum, t) => sum + getTableCurrentTotal(t), 0);
   const topItems = getTopSellingItems(tables, closedSalesToday, TOP_ITEMS_COUNT);
   const topMax = topItems[0]?.quantity ?? 1;
+  const topTotalQty = topItems.reduce((sum, i) => sum + i.quantity, 0) || 1;
 
   useEffect(() => {
     if (!orgId) {
       setYesterdayRevenue(null);
+      setWeekHistory(null);
       return;
     }
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    getDaySummary(orgId, formatDateKey(yesterday))
-      .then((summary) => setYesterdayRevenue(summary?.totalRevenue ?? null))
-      .catch(() => setYesterdayRevenue(null));
+    let cancelled = false;
+    const pastDays = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+    Promise.all(pastDays.map((d) => getDaySummary(orgId, formatDateKey(d))))
+      .then((summaries) => {
+        if (cancelled) return;
+        setYesterdayRevenue(summaries[5]?.totalRevenue ?? null);
+        setWeekHistory(
+          pastDays.map((d, i) => ({
+            label: capitalize(d.toLocaleDateString('pt-BR', { weekday: 'narrow' })),
+            value: summaries[i]?.totalRevenue ?? 0,
+          }))
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setYesterdayRevenue(null);
+        setWeekHistory(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [orgId]);
 
   const trendPct =
     yesterdayRevenue && yesterdayRevenue > 0 ? ((revenue - yesterdayRevenue) / yesterdayRevenue) * 100 : null;
+
+  const sparkDays = weekHistory
+    ? [...weekHistory, { label: capitalize(new Date().toLocaleDateString('pt-BR', { weekday: 'narrow' })), value: revenue }]
+    : null;
+  const sparkMax = sparkDays ? Math.max(1, ...sparkDays.map((d) => d.value)) : 1;
 
   const newTableNotifications = useMemo(
     () =>
@@ -196,28 +172,42 @@ export function DashboardScreen({ navigation }: Props) {
     }
   };
 
+  // "Novo pedido" e "Receber" dependem de escolher uma mesa primeiro — não
+  // existe fluxo direto sem isso, então rolam até a seção de mesas abertas
+  // (ou mandam abrir uma mesa, se não houver nenhuma).
+  const handleQuickAction = (key: string) => {
+    if (key === 'abrir') {
+      navigation.navigate('OpenTable');
+      return;
+    }
+    if (key === 'relatorios') {
+      navigation.navigate('Relatorios');
+      return;
+    }
+    if (openTables.length === 0) {
+      navigation.navigate('OpenTable');
+      return;
+    }
+    scrollRef.current?.scrollTo({ y: mesasSectionY.current, animated: true });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView
+        ref={scrollRef}
         style={styles.flex}
         contentContainerStyle={[styles.scrollContent, contentStyle]}
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.header}>
         <AnimatedPressable
-          style={styles.menuButtonWrap}
+          style={styles.menuButton}
+          stateLayerColor={colors.onPrimaryContainer}
           accessibilityLabel="Abrir menu"
           accessibilityRole="button"
           onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
         >
-          <LinearGradient
-            colors={[HERO.seaTeal500, HERO.seaTeal700]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
-            style={styles.menuButton}
-          >
-            <Ionicons name="menu" size={20} color={colors.white} />
-          </LinearGradient>
+          <Ionicons name="menu" size={20} color={colors.onPrimaryContainer} />
         </AnimatedPressable>
         <View style={styles.headerTextWrap}>
           <Text style={styles.greeting} numberOfLines={1}>
@@ -230,14 +220,20 @@ export function DashboardScreen({ navigation }: Props) {
         <View style={styles.headerActions}>
           <AnimatedPressable
             style={styles.iconButton}
+            stateLayerColor={colors.onSurface}
             accessibilityLabel="Notificações"
             onPress={() => setNotifOpen(true)}
           >
-            <Ionicons name="notifications-outline" size={19} color={HERO.seaTeal900} />
+            <Ionicons name="notifications-outline" size={19} color={dashboardPalette.teal900} />
             {newTableNotifications.length > 0 && <View style={styles.notifDot} />}
           </AnimatedPressable>
-          <AnimatedPressable style={styles.iconButton} accessibilityLabel="Sair" onPress={logout}>
-            <Ionicons name="log-out-outline" size={18} color={HERO.seaTeal900} />
+          <AnimatedPressable
+            style={styles.iconButton}
+            stateLayerColor={colors.onSurface}
+            accessibilityLabel="Sair"
+            onPress={logout}
+          >
+            <Ionicons name="log-out-outline" size={18} color={dashboardPalette.teal900} />
           </AnimatedPressable>
         </View>
       </View>
@@ -246,76 +242,119 @@ export function DashboardScreen({ navigation }: Props) {
 
       <View style={styles.heroCard}>
         <LinearGradient
-          colors={[HERO.gradientStart, HERO.gradientEnd]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
+          colors={[dashboardPalette.teal700, dashboardPalette.teal900]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
         <View style={styles.heroAmbientGlow} pointerEvents="none" />
-        <View style={styles.heroSunWrap} pointerEvents="none">
-          <LinearGradient
-            colors={[HERO.sunLight, HERO.sunMid, HERO.sun500]}
-            start={{ x: 0.3, y: 0 }}
-            end={{ x: 0.7, y: 1 }}
-            style={styles.heroSun}
-          />
-        </View>
 
-        <View style={styles.heroTopContent}>
+        <View style={styles.heroContent}>
           <View style={styles.caixaTopRow}>
             <Text style={styles.caixaLabel}>CAIXA DO DIA</Text>
             <View style={styles.statusPill}>
-              <PulseDot color={HERO.liveDot} size={7} />
+              <PulseDot color={dashboardPalette.mint} size={7} />
               <Text style={styles.statusPillText}>Aberto</Text>
             </View>
           </View>
 
           <Text style={styles.revenueCap}>Faturamento de hoje</Text>
           <View style={styles.revenueRow}>
+            <Text style={styles.revenuePrefix}>R$</Text>
             <Text style={styles.revenueMain}>{revenueMain}</Text>
             <Text style={styles.revenueCents}>,{revenueCents}</Text>
           </View>
           {trendPct !== null && (
-            <View style={styles.revenueSubRow}>
-              <Text style={styles.trendBold}>
-                {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct).toFixed(0)}%
+            <View
+              style={[
+                styles.trendChip,
+                { backgroundColor: trendPct >= 0 ? 'rgba(74,222,155,0.15)' : 'rgba(224,91,111,0.15)' },
+              ]}
+            >
+              <Ionicons
+                name={trendPct >= 0 ? 'trending-up' : 'trending-down'}
+                size={13}
+                color={trendPct >= 0 ? dashboardPalette.mint : dashboardPalette.rose}
+              />
+              <Text
+                style={[
+                  styles.trendChipText,
+                  { color: trendPct >= 0 ? dashboardPalette.mint : dashboardPalette.rose },
+                ]}
+              >
+                {Math.abs(trendPct).toFixed(0)}% vs. ontem
               </Text>
-              <Text style={styles.trendRest}> em relação a ontem</Text>
             </View>
           )}
-        </View>
 
-        <View style={trendPct !== null ? styles.waveWrapWithTrend : styles.waveWrap}>
-          <WaveDivider />
-        </View>
+          {sparkDays && (
+            <View style={styles.sparkRow}>
+              {sparkDays.map((day, index) => {
+                const isToday = index === sparkDays.length - 1;
+                return (
+                  <View key={index} style={styles.sparkCol}>
+                    <View style={styles.sparkBarTrack}>
+                      <View
+                        style={[
+                          styles.sparkBar,
+                          isToday && styles.sparkBarToday,
+                          { height: Math.max(3, (day.value / sparkMax) * SPARK_BAR_MAX_HEIGHT) },
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.sparkLabel, isToday && styles.sparkLabelToday]}>{day.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
 
-        <View style={styles.seaStrip}>
-          <View style={styles.statsRow}>
-            <View style={styles.statCol}>
-              <Text style={styles.statValue}>{openTables.length}</Text>
-              <Text style={styles.statLabel}>em atendimento</Text>
+          <View style={styles.heroDivider} />
+
+          <View style={styles.metricsRow}>
+            <View style={styles.metricCol}>
+              <View style={styles.metricValueRow}>
+                {openTables.length > 0 && <View style={styles.metricDot} />}
+                <Text style={styles.metricValue} numberOfLines={1}>
+                  {openTables.length}
+                </Text>
+              </View>
+              <Text style={styles.metricLabel}>em atendimento</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCol}>
-              <Text style={styles.statValue}>{closedTables.length}</Text>
-              <Text style={styles.statLabel}>fechadas hoje</Text>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricCol}>
+              <Text style={styles.metricValue} numberOfLines={1}>
+                {closedTables.length}
+              </Text>
+              <Text style={styles.metricLabel}>fechadas hoje</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCol}>
-              <Text style={styles.statValue}>
+            <View style={styles.metricDivider} />
+            <View style={styles.metricCol}>
+              <Text style={styles.metricValue} numberOfLines={1}>
                 R$ {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </Text>
-              <Text style={styles.statLabel}>ticket médio</Text>
+              <Text style={styles.metricLabel}>ticket médio</Text>
             </View>
           </View>
         </View>
+      </View>
 
-        <AnimatedPressable style={styles.heroFooter} onPress={() => navigation.navigate('Reports')}>
-          <Text style={styles.heroFooterText} numberOfLines={1}>
-            Ver faturamento completo em Relatórios
-          </Text>
-          <Ionicons name="chevron-forward" size={15} color="#EAFBF5" />
-        </AnimatedPressable>
+      <View style={styles.quickActions}>
+        {QUICK_ACTIONS.map((action) => (
+          <AnimatedPressable
+            key={action.key}
+            style={styles.quickAction}
+            stateLayerColor={action.color}
+            onPress={() => handleQuickAction(action.key)}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}1F` }]}>
+              <Ionicons name={action.icon} size={17} color={action.color} />
+            </View>
+            <Text style={styles.quickActionLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
+          </AnimatedPressable>
+        ))}
       </View>
 
       <View style={styles.section}>
@@ -334,29 +373,31 @@ export function DashboardScreen({ navigation }: Props) {
           <View style={[styles.card, styles.sellersCard]}>
             {topItems.map((item, index) => {
               const pct = Math.max(4, Math.round((item.quantity / topMax) * 100));
-              const rank = RANK_STYLE[index] ?? RANK_STYLE[RANK_STYLE.length - 1];
+              const share = Math.round((item.quantity / topTotalQty) * 100);
+              const rankColor = RANK_COLORS[index] ?? RANK_COLORS[RANK_COLORS.length - 1];
               return (
-                <View key={item.menuItemId} style={styles.sellerRow}>
-                  <View style={[styles.rank, { backgroundColor: rank.bg }]}>
-                    <Text style={[styles.rankNumber, { color: rank.fg }]}>{index + 1}</Text>
-                  </View>
-                  <View style={styles.sellerBody}>
-                    <Text style={styles.sellerName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <View style={styles.barTrack}>
-                      <LinearGradient
-                        colors={[HERO.sun500, HERO.sun600]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={[styles.barFill, { width: `${pct}%` }]}
-                      />
+                <View key={item.menuItemId}>
+                  {index > 0 && <View style={styles.sellerDivider} />}
+                  <View style={styles.sellerRow}>
+                    <View style={[styles.rank, { backgroundColor: `${rankColor}21` }]}>
+                      <Text style={[styles.rankNumber, { color: rankColor }]}>{index + 1}</Text>
                     </View>
+                    <View style={styles.sellerBody}>
+                      <Text style={styles.sellerName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <View style={styles.sellerBarRow}>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: rankColor }]} />
+                        </View>
+                        <Text style={styles.sellerShare}>{share}%</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.sellerQty}>
+                      {item.quantity}
+                      <Text style={styles.sellerQtyX}>×</Text>
+                    </Text>
                   </View>
-                  <Text style={styles.sellerQty}>
-                    {item.quantity}
-                    <Text style={styles.sellerQtyX}>×</Text>
-                  </Text>
                 </View>
               );
             })}
@@ -364,7 +405,12 @@ export function DashboardScreen({ navigation }: Props) {
         )}
       </View>
 
-      <View style={styles.section}>
+      <View
+        style={styles.section}
+        onLayout={(e) => {
+          mesasSectionY.current = e.nativeEvent.layout.y;
+        }}
+      >
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>Mesas abertas</Text>
           <Text style={styles.sectionMeta}>
@@ -372,7 +418,7 @@ export function DashboardScreen({ navigation }: Props) {
           </Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, styles.mesasCard]}>
           {openTables.length === 0 ? (
             <View style={styles.empty}>
               <LinearGradient
@@ -381,7 +427,7 @@ export function DashboardScreen({ navigation }: Props) {
                 end={{ x: 0.8, y: 1 }}
                 style={styles.emptyIll}
               >
-                <BeachUmbrellaIcon size={28} color={HERO.seaTeal500} />
+                <BeachUmbrellaIcon size={28} color={dashboardPalette.teal500} />
               </LinearGradient>
               <Text style={styles.emptyTitle}>Nenhuma mesa aberta</Text>
               <Text style={styles.emptyText}>
@@ -391,7 +437,7 @@ export function DashboardScreen({ navigation }: Props) {
           ) : (
             <>
               <View style={styles.openTotalRow}>
-                <Text style={styles.openTotalLabel}>Valor em aberto (mesas + consumação)</Text>
+                <Text style={styles.openTotalLabel}>Valor em aberto</Text>
                 <Text style={styles.openTotalValue}>
                   R$ {openTablesTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
@@ -412,9 +458,9 @@ export function DashboardScreen({ navigation }: Props) {
       </View>
 
       {isAdmin && (
-        <AnimatedPressable style={styles.closeDay} onPress={handleEndDay}>
+        <AnimatedPressable style={styles.closeDay} stateLayerColor={colors.onSurface} onPress={handleEndDay}>
           <View style={styles.closeIcon}>
-            <Ionicons name="lock-closed-outline" size={17} color={HERO.sun600} />
+            <Ionicons name="lock-closed-outline" size={17} color={dashboardPalette.rose} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.closeTitle}>Encerrar o dia</Text>
@@ -425,30 +471,6 @@ export function DashboardScreen({ navigation }: Props) {
       )}
 
       </ScrollView>
-
-      <Animated.View style={[styles.fabWrap, { transform: [{ translateY: fabFloatY }] }]}>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.fabGlow,
-            { opacity: fabPulseOpacity, transform: [{ scale: fabPulseScale }] },
-          ]}
-        />
-        <AnimatedPressable
-          style={styles.fab}
-          accessibilityLabel="Abrir nova mesa"
-          onPress={() => navigation.navigate('OpenTable')}
-        >
-          <LinearGradient
-            colors={['#FFAF5C', HERO.sun600]}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
-            style={styles.fabGradient}
-          >
-            <Ionicons name="add" size={26} color={colors.white} />
-          </LinearGradient>
-        </AnimatedPressable>
-      </Animated.View>
 
       <ConfirmModal
         visible={endDayDialog === 'blocked-open'}
@@ -475,7 +497,7 @@ export function DashboardScreen({ navigation }: Props) {
       <ConfirmModal
         visible={endDayDialog === 'confirm'}
         icon="lock-closed-outline"
-        iconColor={HERO.sun600}
+        iconColor={dashboardPalette.rose}
         title="Encerrar o dia"
         confirmLabel="Encerrar dia"
         destructive
@@ -486,7 +508,7 @@ export function DashboardScreen({ navigation }: Props) {
         <View style={styles.endDayRevenueBox}>
           <Text style={styles.endDayRevenueLabel}>FATURAMENTO DE HOJE</Text>
           <Text style={styles.endDayRevenueValue}>
-            {revenueMain},{revenueCents}
+            R$ {revenueMain},{revenueCents}
           </Text>
         </View>
         <Text style={styles.endDayConfirmSub}>
@@ -516,13 +538,14 @@ export function DashboardScreen({ navigation }: Props) {
                 <AnimatedPressable
                   key={table.id}
                   style={styles.notifRow}
+                  stateLayerColor={colors.onSurface}
                   onPress={() => {
                     handleCloseNotif();
                     navigation.navigate('TableDetail', { tableId: table.id });
                   }}
                 >
                   <View style={styles.notifRowIcon}>
-                    <Ionicons name="restaurant-outline" size={16} color={HERO.seaTeal700} />
+                    <Ionicons name="restaurant-outline" size={16} color={dashboardPalette.teal700} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.notifRowTitle}>Mesa {table.label} aberta</Text>
@@ -566,20 +589,14 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: spacing.md,
   },
-  menuButtonWrap: {
-    borderRadius: 15,
-    shadowColor: HERO.seaTeal700,
-    shadowOpacity: 0.32,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
   menuButton: {
     width: 44,
     height: 44,
-    borderRadius: 15,
+    borderRadius: shape.full,
+    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   headerTextWrap: {
     flex: 1,
@@ -604,12 +621,11 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: 13,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   notifDot: {
     position: 'absolute',
@@ -618,7 +634,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: HERO.sun600,
+    backgroundColor: dashboardPalette.amber,
     borderWidth: 1.5,
     borderColor: colors.surface,
   },
@@ -633,16 +649,10 @@ const styles = StyleSheet.create({
     width: 300,
     maxWidth: '100%',
     maxHeight: 360,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.large,
     overflow: 'hidden',
-    shadowColor: colors.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    ...elevationShadow(3),
   },
   notifHeader: {
     flexDirection: 'row',
@@ -671,7 +681,7 @@ const styles = StyleSheet.create({
   notifHeaderBadgeText: {
     fontFamily: nunitoFontFamily.bold,
     fontSize: 12,
-    color: HERO.seaTeal700,
+    color: dashboardPalette.teal700,
   },
   notifEmpty: {
     flexDirection: 'row',
@@ -714,161 +724,195 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     position: 'relative',
-    borderRadius: 26,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: HERO.seaTeal900,
-    shadowOpacity: 0.32,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
   },
   heroAmbientGlow: {
     position: 'absolute',
-    top: -50,
+    top: -60,
     right: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: HERO.ambientGlow,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(74,222,155,0.07)',
   },
-  heroSunWrap: {
-    position: 'absolute',
-    top: 16,
-    right: 22,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    shadowColor: HERO.sunMid,
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
-  },
-  heroSun: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  heroTopContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+  heroContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   caixaTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   caixaLabel: {
     fontFamily: nunitoFontFamily.extraBold,
-    fontSize: 10.5,
-    letterSpacing: 1.7,
+    fontSize: 11,
+    letterSpacing: 1.6,
     color: 'rgba(255,255,255,0.7)',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: radius.full,
-    paddingHorizontal: 11,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: shape.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 10,
     paddingVertical: 5,
   },
   statusPillText: {
-    fontFamily: nunitoFontFamily.extraBold,
+    fontFamily: nunitoFontFamily.semiBold,
     fontSize: 12,
-    color: '#EAFBF5',
+    color: colors.white,
   },
   revenueCap: {
-    fontFamily: nunitoFontFamily.bold,
-    fontSize: 12.5,
-    color: 'rgba(255,255,255,0.78)',
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 16,
   },
   revenueRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'baseline',
     marginTop: 4,
+    gap: 4,
+  },
+  revenuePrefix: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 18,
+    color: colors.white,
   },
   revenueMain: {
-    fontFamily: serifFontFamily.semiBold,
-    fontSize: 36,
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 38,
     color: colors.white,
-    letterSpacing: -0.4,
+    letterSpacing: -1,
+    fontVariant: ['tabular-nums'],
   },
   revenueCents: {
-    fontFamily: serifFontFamily.semiBold,
-    fontSize: 21,
-    color: 'rgba(255,255,255,0.72)',
-    marginBottom: 2,
-  },
-  revenueSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  trendBold: {
-    fontFamily: nunitoFontFamily.extraBold,
-    fontSize: 12,
-    color: HERO.trendGood,
-  },
-  trendRest: {
-    fontFamily: nunitoFontFamily.bold,
-    fontSize: 12,
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 18,
     color: 'rgba(255,255,255,0.7)',
   },
-  waveWrap: {
+  trendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    borderRadius: shape.full,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  trendChipText: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 12,
+  },
+  sparkRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+    marginTop: 16,
+    height: 44,
+  },
+  sparkCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  sparkBarTrack: {
+    width: '100%',
+    height: SPARK_BAR_MAX_HEIGHT,
+    justifyContent: 'flex-end',
+  },
+  sparkBar: {
+    width: '100%',
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  sparkBarToday: {
+    backgroundColor: dashboardPalette.mint,
+  },
+  sparkLabel: {
+    fontFamily: nunitoFontFamily.regular,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.38)',
+    marginTop: 5,
+  },
+  sparkLabelToday: {
+    color: dashboardPalette.mint,
+    fontFamily: nunitoFontFamily.bold,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.24)',
     marginTop: 16,
   },
-  waveWrapWithTrend: {
-    marginTop: 10,
+  metricsRow: {
+    flexDirection: 'row',
+    paddingVertical: 16,
   },
-  seaStrip: {
-    backgroundColor: 'rgba(0,0,0,0.12)',
-    paddingTop: 2,
-    paddingHorizontal: 12,
-    paddingBottom: 16,
+  metricCol: {
+    flex: 1,
   },
-  statsRow: {
+  metricValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
   },
-  statCol: {
-    flex: 1,
-    paddingHorizontal: 10,
+  metricDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: dashboardPalette.amber,
+    marginRight: 6,
   },
-  statValue: {
-    fontFamily: nunitoFontFamily.extraBold,
+  metricValue: {
+    fontFamily: nunitoFontFamily.bold,
     fontSize: 19,
     color: colors.white,
+    fontVariant: ['tabular-nums'],
   },
-  statLabel: {
-    fontFamily: nunitoFontFamily.bold,
-    fontSize: 10.5,
-    color: 'rgba(255,255,255,0.68)',
-    marginTop: 5,
-    lineHeight: 13,
+  metricLabel: {
+    fontFamily: nunitoFontFamily.regular,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
   },
-  statDivider: {
+  metricDivider: {
     width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: 12,
   },
-  heroFooter: {
+  quickActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.16)',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 13,
-    marginTop: 12,
     gap: spacing.xs,
+    marginTop: spacing.md,
   },
-  heroFooterText: {
-    fontFamily: nunitoFontFamily.extraBold,
-    fontSize: 13,
-    color: '#EAFBF5',
+  quickAction: {
     flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: shape.medium,
+    paddingVertical: 14,
+    overflow: 'hidden',
+  },
+  quickActionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 10.5,
+    color: colors.textPrimary,
+    marginTop: 7,
+    textAlign: 'center',
   },
   section: {
     marginTop: 22,
@@ -891,18 +935,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    shadowColor: colors.textPrimary,
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    ...elevationShadow(1),
   },
   sellersCard: {
-    padding: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
   },
   emptyInline: {
     paddingVertical: spacing.lg,
@@ -914,13 +953,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
+  sellerDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
   sellerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderRadius: 15,
+    paddingVertical: 14,
   },
   rank: {
     width: 26,
@@ -930,37 +971,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rankNumber: {
-    fontFamily: serifFontFamily.bold,
-    fontSize: 13,
+    fontFamily: nunitoFontFamily.extraBold,
+    fontSize: 12,
   },
   sellerBody: {
     flex: 1,
   },
   sellerName: {
     fontFamily: nunitoFontFamily.bold,
-    fontSize: 14,
+    fontSize: 13.5,
     color: colors.textPrimary,
   },
+  sellerBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: 7,
+  },
   barTrack: {
-    height: 6,
+    flex: 1,
+    height: 5,
     borderRadius: 99,
     backgroundColor: colors.surfaceHighlight,
-    marginTop: 7,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: 99,
   },
+  sellerShare: {
+    fontFamily: nunitoFontFamily.medium,
+    fontSize: 10.5,
+    color: colors.textMuted,
+  },
   sellerQty: {
     fontFamily: nunitoFontFamily.extraBold,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.textPrimary,
   },
   sellerQtyX: {
     fontFamily: nunitoFontFamily.bold,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textMuted,
+  },
+  mesasCard: {
+    padding: 14,
   },
   empty: {
     paddingVertical: 30,
@@ -993,28 +1048,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    padding: spacing.md,
+    marginTop: spacing.sm,
   },
   openTotalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   openTotalLabel: {
-    fontFamily: nunitoFontFamily.bold,
-    fontSize: 12,
+    fontFamily: nunitoFontFamily.medium,
+    fontSize: 12.5,
     color: colors.textSecondary,
     flexShrink: 1,
   },
   openTotalValue: {
     fontFamily: nunitoFontFamily.extraBold,
-    fontSize: 15,
-    color: HERO.seaTeal700,
+    fontSize: 17,
+    color: dashboardPalette.teal500,
   },
   closeDay: {
     flexDirection: 'row',
@@ -1022,21 +1073,16 @@ const styles = StyleSheet.create({
     gap: 13,
     padding: spacing.md,
     marginTop: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    shadowColor: colors.textPrimary,
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    overflow: 'hidden',
+    ...elevationShadow(1),
   },
   closeIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#FBEADF',
+    backgroundColor: `${dashboardPalette.rose}1A`,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1051,42 +1097,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  fabWrap: {
-    position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.xxxl + spacing.lg,
-    width: 60,
-    height: 60,
-  },
-  fabGlow: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: HERO.sun600,
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    shadowColor: HERO.sun600,
-    shadowOpacity: 0.44,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  fabGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   endDayRevenueBox: {
     width: '100%',
     alignItems: 'center',
     backgroundColor: colors.emeraldMuted,
-    borderRadius: radius.lg,
+    borderRadius: shape.medium,
     borderWidth: 1,
     borderColor: colors.emeraldGlow,
     paddingVertical: spacing.md,

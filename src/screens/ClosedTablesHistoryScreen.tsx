@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { EmptyState } from '../components/EmptyState';
@@ -10,7 +10,7 @@ import { useAuthStore } from '../context/useAuthStore';
 import { useClosedSalesRange } from '../hooks/useClosedSalesRange';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, monoFontFamily, nunitoFontFamily, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, monoFontFamily, nunitoFontFamily, shape, spacing, typography } from '../theme';
 import { ClosedSale } from '../types';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
 import { describeSalePayments } from '../utils/payments';
@@ -61,15 +61,16 @@ export function ClosedTablesHistoryScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => {
             navigation.goBack();
             navigation.dispatch(DrawerActions.openDrawer());
           }}
           style={styles.backBtn}
+          stateLayerColor={colors.onSurface}
         >
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
         <Text style={styles.title}>Histórico de Mesas</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -79,6 +80,7 @@ export function ClosedTablesHistoryScreen({ navigation }: Props) {
           <AnimatedPressable
             key={p.key}
             style={[styles.presetChip, preset === p.key && styles.presetChipActive]}
+            stateLayerColor={preset === p.key ? colors.white : colors.onSurface}
             onPress={() => setPreset(p.key)}
           >
             <Text style={[styles.presetText, preset === p.key && styles.presetTextActive]}>
@@ -104,12 +106,13 @@ export function ClosedTablesHistoryScreen({ navigation }: Props) {
               <Text style={styles.groupLabel}>{group.label}</Text>
               <View style={styles.card}>
                 {group.sales.map((sale, index) => (
-                  <TouchableOpacity
+                  <AnimatedPressable
                     key={sale.id}
                     style={[
                       styles.row,
                       index === group.sales.length - 1 && { borderBottomWidth: 0 },
                     ]}
+                    stateLayerColor={colors.onSurface}
                     onPress={() => navigation.navigate('ClosedTableDetail', { sale })}
                   >
                     <View style={styles.rowIcon}>
@@ -124,7 +127,7 @@ export function ClosedTablesHistoryScreen({ navigation }: Props) {
                     </View>
                     <Text style={styles.rowValue}>{formatCurrency(sale.total)}</Text>
                     <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ))}
               </View>
             </View>
@@ -148,10 +151,9 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: shape.full,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -168,10 +170,11 @@ const styles = StyleSheet.create({
   presetChip: {
     flex: 1,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: shape.full,
+    overflow: 'hidden',
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.outlineVariant,
     alignItems: 'center',
   },
   presetChipActive: {
@@ -201,10 +204,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   card: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    overflow: 'hidden',
+    ...elevationShadow(1),
   },
   row: {
     flexDirection: 'row',
@@ -213,12 +216,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: colors.outlineVariant,
   },
   rowIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: shape.full,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, shape, spacing, typography } from '../theme';
 import { PaymentMethod } from '../types';
 import { formatCurrency, formatDateLabel, formatTime } from '../utils/format';
 import { PAYMENT_LABELS, describeSalePayments } from '../utils/payments';
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   revenueCard: {
-    borderRadius: radius.xl,
+    borderRadius: shape.large,
     borderWidth: 1,
     borderColor: colors.emeraldGlow,
     padding: spacing.lg,
@@ -142,13 +142,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   paymentCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
     padding: spacing.md,
     marginBottom: spacing.lg,
     gap: spacing.sm,
+    ...elevationShadow(1),
   },
   paymentRow: {
     flexDirection: 'row',
@@ -165,10 +164,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   salesCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceContainerLow,
+    borderRadius: shape.large,
+    overflow: 'hidden',
+    ...elevationShadow(1),
   },
   saleRow: {
     flexDirection: 'row',
@@ -176,7 +175,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.outlineVariant,
   },
   saleLabel: {
     ...typography.body,
@@ -194,6 +193,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.outlineVariant,
   },
 });

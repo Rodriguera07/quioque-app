@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { ReactNode } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, elevationShadow, shape, spacing, typography } from '../theme';
 import { Button } from './Button';
 
 interface Props {
@@ -84,17 +84,16 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.xxl,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: shape.extraLarge,
     padding: spacing.lg,
     alignItems: 'center',
+    ...elevationShadow(3),
   },
   iconWrap: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: shape.full,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
