@@ -74,7 +74,7 @@ export function ReportsScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <AnimatedPressable
           onPress={() => navigation.dispatch(DrawerActions.openDrawer())}

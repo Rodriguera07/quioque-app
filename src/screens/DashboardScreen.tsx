@@ -192,7 +192,7 @@ export function DashboardScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView
         ref={scrollRef}
         style={styles.flex}
@@ -815,7 +815,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 6,
     marginTop: 16,
-    height: 44,
   },
   sparkCol: {
     flex: 1,

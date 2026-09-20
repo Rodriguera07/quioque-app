@@ -121,7 +121,7 @@ export function MenuManagementScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Image
         source={require('../../assets/icon.png')}
         style={styles.backgroundLogo}

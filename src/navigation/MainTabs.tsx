@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../context/useAuthStore';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { MenuManagementScreen } from '../screens/MenuManagementScreen';
@@ -34,6 +35,12 @@ function TabIcon({ name, focused }: { name: keyof TabParamList; focused: boolean
 // aparece para admin, mesma restrição que já existia no menu lateral.
 export function MainTabs() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
+  // Barra de gestos do Android / indicador home do iPhone reservam uma faixa
+  // que varia por aparelho — uma altura fixa cortava os ícones/labels em
+  // telas com esse inset maior. `insets.bottom` cresce a barra na medida
+  // exata que cada aparelho precisa.
+  const insets = useSafeAreaInsets();
+  const tabBarBottomPadding = Math.max(8, insets.bottom);
 
   return (
     <Tab.Navigator
@@ -46,15 +53,19 @@ export function MainTabs() {
           backgroundColor: colors.surface,
           borderTopWidth: 1,
           borderTopColor: colors.borderLight,
-          height: 62,
+          height: 56 + tabBarBottomPadding,
           paddingTop: 6,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: {
-          fontFamily: nunitoFontFamily.semiBold,
-          fontSize: 10,
+          paddingBottom: tabBarBottomPadding,
         },
         tabBarIcon: ({ focused }) => <TabIcon name={route.name as keyof TabParamList} focused={focused} />,
+        // Em telas estreitas (~320-360px), 4 abas deixam pouco espaço por
+        // label — sem limitar a 1 linha, "Relatórios" quebrava e ficava
+        // cortado pela altura fixa da barra.
+        tabBarLabel: ({ color, children }) => (
+          <Text numberOfLines={1} style={[styles.label, { color }]}>
+            {children}
+          </Text>
+        ),
       })}
     >
       <Tab.Screen name="Painel" component={DashboardScreen} />
@@ -86,5 +97,10 @@ const styles = StyleSheet.create({
   iconEmoji: {
     fontSize: 19,
     lineHeight: 22,
+  },
+  label: {
+    fontFamily: nunitoFontFamily.semiBold,
+    fontSize: 10,
+    textAlign: 'center',
   },
 });

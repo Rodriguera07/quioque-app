@@ -27,7 +27,7 @@ export function TablesScreen({ navigation }: Props) {
   const openTablesTotal = openTables.reduce((sum, t) => sum + getTableCurrentTotal(t), 0);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <AnimatedPressable
           style={styles.menuButton}
