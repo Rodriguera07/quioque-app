@@ -77,7 +77,10 @@ export function MainTabs() {
         // rebaixa durante a sessão) — desmontar/remontar a Screen nesse
         // momento não é suportado pelo React Navigation, então a aba
         // sempre existe e só o botão/gesto de acesso é ocultado.
-        options={isAdmin ? undefined : { tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }}
+        options={{
+          title: 'Cardápio',
+          ...(isAdmin ? null : { tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }),
+        }}
       />
       <Tab.Screen name="Relatorios" component={ReportsScreen} options={{ title: 'Relatórios' }} />
     </Tab.Navigator>
