@@ -1,7 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { AdminNotificationToasts } from '../components/AdminNotificationToasts';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { useAuthStore } from '../context/useAuthStore';
 import { usePosStore } from '../context/usePosStore';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -32,18 +32,7 @@ export function RootNavigator() {
   }, [uid, orgId, displayName]);
 
   if (status === 'loading') {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingScreen message="Restaurando sua sessão…" />;
   }
 
   return (

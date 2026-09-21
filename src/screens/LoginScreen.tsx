@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { HeroWave } from '../components/HeroWave';
 import { LegalDocument } from '../components/LegalDocument';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { LoginHeroBackground } from '../components/LoginHeroBackground';
 import { LoginHeroScene } from '../components/LoginHeroScene';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
@@ -100,6 +101,7 @@ export function LoginScreen() {
   const heroFloat = useRef(new Animated.Value(0)).current;
   const introFade = useRef(new Animated.Value(0)).current;
   const indicatorAnim = useRef(new Animated.Value(0)).current;
+  const loadingOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(enter, {
@@ -147,6 +149,17 @@ export function LoginScreen() {
       bounciness: 8,
     }).start();
   }, [mode, indicatorAnim]);
+
+  // Cobre o formulário com a mesma cena "mar ao amanhecer" da abertura do
+  // app enquanto autentica, em vez do usuário ver só o texto do botão mudar
+  // e depois um corte seco pro painel quando a sessão autentica.
+  useEffect(() => {
+    Animated.timing(loadingOpacity, {
+      toValue: loading ? 1 : 0,
+      duration: loading ? 200 : 260,
+      useNativeDriver: true,
+    }).start();
+  }, [loading, loadingOpacity]);
 
   const runShake = () => {
     shake.setValue(0);
@@ -246,321 +259,333 @@ export function LoginScreen() {
   const welcome = WELCOME_COPY[mode];
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
-        <ScrollView
-          contentContainerStyle={[styles.scroll, contentStyle]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={[styles.hero, isCompact && styles.heroCompact]}>
-            <LoginHeroBackground />
+    <View style={styles.flex}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
+          <ScrollView
+            contentContainerStyle={[styles.scroll, contentStyle]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={[styles.hero, isCompact && styles.heroCompact]}>
+              <LoginHeroBackground />
 
-            <Animated.View style={[styles.brandWrap, brandStyle]}>
-              <Animated.View
-                style={[
-                  styles.logoBadge,
-                  { width: heroHeight, height: heroHeight, transform: [{ translateY: heroFloatY }] },
-                ]}
-              >
-                <Image
-                  source={require('../../assets/icon.png')}
-                  style={styles.logoImage}
-                  resizeMode="cover"
-                />
+              <Animated.View style={[styles.brandWrap, brandStyle]}>
+                <Animated.View
+                  style={[
+                    styles.logoBadge,
+                    { width: heroHeight, height: heroHeight, transform: [{ translateY: heroFloatY }] },
+                  ]}
+                >
+                  <Image
+                    source={require('../../assets/icon.png')}
+                    style={styles.logoImage}
+                    resizeMode="cover"
+                  />
+                </Animated.View>
+
+                <Text style={styles.brandTiny}>TRAILER</Text>
+                <Text style={styles.brandBig}>MAR AZUL</Text>
+
+                <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
+                  <Text style={styles.brandSub}>{welcome.title}</Text>
+                  {showIntro && <Text style={styles.brandIntro}>{welcome.subtitle}</Text>}
+                </Animated.View>
+
+                {showDecor && (
+                  <View style={styles.featureRow}>
+                    {FEATURES.map((f) => (
+                      <View key={f.label} style={styles.featureBadge}>
+                        <Ionicons name={f.icon} size={13} color={HERO.leadText} />
+                        <Text style={styles.featureBadgeText}>{f.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </Animated.View>
 
-              <Text style={styles.brandTiny}>TRAILER</Text>
-              <Text style={styles.brandBig}>MAR AZUL</Text>
+              {showDecor && <LoginHeroScene />}
 
-              <Animated.View style={{ opacity: introFade, alignItems: 'center' }}>
-                <Text style={styles.brandSub}>{welcome.title}</Text>
-                {showIntro && <Text style={styles.brandIntro}>{welcome.subtitle}</Text>}
-              </Animated.View>
+              <HeroWave color={colors.background} />
+            </View>
 
-              {showDecor && (
-                <View style={styles.featureRow}>
-                  {FEATURES.map((f) => (
-                    <View key={f.label} style={styles.featureBadge}>
-                      <Ionicons name={f.icon} size={13} color={HERO.leadText} />
-                      <Text style={styles.featureBadgeText}>{f.label}</Text>
-                    </View>
-                  ))}
+            <Animated.View style={sheetStyle}>
+              <View style={[styles.sheet, isCompact && styles.sheetCompact]}>
+                <View style={[styles.modeSwitch, isCompact && styles.modeSwitchCompact]}>
+                  <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]}>
+                    <LinearGradient
+                      colors={[HERO.bronzeLight, HERO.bronze, HERO.bronzeDeep]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                  </Animated.View>
+                  <AnimatedPressable
+                    style={styles.modeTab}
+                    stateLayerColor={colors.onSurface}
+                    onPress={() => switchMode('login')}
+                  >
+                    <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
+                      Entrar
+                    </Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    style={styles.modeTab}
+                    stateLayerColor={colors.onSurface}
+                    onPress={() => switchMode('signup')}
+                  >
+                    <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
+                      Cadastrar
+                    </Text>
+                  </AnimatedPressable>
                 </View>
-              )}
-            </Animated.View>
 
-            {showDecor && <LoginHeroScene />}
+                <Text style={[styles.sheetLabel, isCompact && styles.sheetLabelCompact]}>
+                  {mode === 'login' ? 'ACESSO AO CAIXA' : 'CRIAR CONTA DO QUIOSQUE'}
+                </Text>
 
-            <HeroWave color={colors.background} />
-          </View>
+                {mode === 'signup' && (
+                  <>
+                    <Text style={styles.fieldLabel}>NOME DO QUIOSQUE</Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        isCompact && styles.inputWrapCompact,
+                        focusedField === 'org' && styles.inputWrapFocused,
+                      ]}
+                    >
+                      <Ionicons
+                        name="storefront-outline"
+                        size={17}
+                        color={focusedField === 'org' ? HERO.sea : colors.textMuted}
+                      />
+                      <TextInput
+                        value={orgName}
+                        onChangeText={(v) => {
+                          setOrgName(v);
+                          if (error) setError('');
+                        }}
+                        onFocus={() => setFocusedField('org')}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="Quiosque do Rodrigo"
+                        placeholderTextColor={colors.textMuted}
+                        style={styles.input}
+                        returnKeyType="next"
+                      />
+                    </View>
 
-          <Animated.View style={sheetStyle}>
-            <View style={[styles.sheet, isCompact && styles.sheetCompact]}>
-              <View style={[styles.modeSwitch, isCompact && styles.modeSwitchCompact]}>
-                <Animated.View style={[styles.modeIndicator, { left: indicatorLeft }]}>
+                    <Text style={[styles.fieldLabel, fieldGapStyle]}>SEU NOME</Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        isCompact && styles.inputWrapCompact,
+                        focusedField === 'name' && styles.inputWrapFocused,
+                      ]}
+                    >
+                      <Ionicons
+                        name="person-outline"
+                        size={17}
+                        color={focusedField === 'name' ? HERO.sea : colors.textMuted}
+                      />
+                      <TextInput
+                        value={displayName}
+                        onChangeText={(v) => {
+                          setDisplayName(v);
+                          if (error) setError('');
+                        }}
+                        onFocus={() => setFocusedField('name')}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="Seu nome completo"
+                        placeholderTextColor={colors.textMuted}
+                        style={styles.input}
+                        returnKeyType="next"
+                      />
+                    </View>
+                  </>
+                )}
+
+                <Text style={[styles.fieldLabel, mode === 'signup' && fieldGapStyle]}>
+                  E-MAIL
+                </Text>
+                <View
+                  style={[
+                    styles.inputWrap,
+                    isCompact && styles.inputWrapCompact,
+                    focusedField === 'user' && styles.inputWrapFocused,
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={17}
+                    color={focusedField === 'user' ? HERO.sea : colors.textMuted}
+                  />
+                  <TextInput
+                    value={email}
+                    onChangeText={(v) => {
+                      setEmail(v);
+                      if (error) setError('');
+                    }}
+                    onFocus={() => setFocusedField('user')}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="voce@quiosque.com"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    style={styles.input}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <Text style={[styles.fieldLabel, fieldGapStyle]}>SENHA</Text>
+                <View
+                  style={[
+                    styles.inputWrap,
+                    isCompact && styles.inputWrapCompact,
+                    focusedField === 'pass' && styles.inputWrapFocused,
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={17}
+                    color={focusedField === 'pass' ? HERO.sea : colors.textMuted}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={(v) => {
+                      setPassword(v);
+                      if (error) setError('');
+                    }}
+                    onFocus={() => setFocusedField('pass')}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.input}
+                    onSubmitEditing={handleSubmit}
+                    returnKeyType="go"
+                  />
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => setShowPassword((v) => !v)}
+                    accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={17}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+
+                {mode === 'login' && (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={handleForgotPassword}
+                    disabled={resettingPassword}
+                    style={styles.forgotPasswordWrap}
+                  >
+                    <Text style={styles.forgotPasswordText}>
+                      {resettingPassword ? 'Enviando…' : 'Esqueceu a senha?'}
+                    </Text>
+                  </Pressable>
+                )}
+
+                {error ? (
+                  <View style={styles.errorBox}>
+                    <Ionicons name="alert-circle" size={14} color={colors.danger} />
+                    <Text style={styles.error}>{error}</Text>
+                  </View>
+                ) : null}
+
+                <AnimatedPressable
+                  style={[styles.enterBtn, isCompact && styles.enterBtnCompact]}
+                  stateLayerColor={colors.white}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                >
                   <LinearGradient
                     colors={[HERO.bronzeLight, HERO.bronze, HERO.bronzeDeep]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={StyleSheet.absoluteFillObject}
                   />
-                </Animated.View>
-                <AnimatedPressable
-                  style={styles.modeTab}
-                  stateLayerColor={colors.onSurface}
-                  onPress={() => switchMode('login')}
-                >
-                  <Text style={[styles.modeTabText, mode === 'login' && styles.modeTabTextActive]}>
-                    Entrar
+                  <Text style={styles.enterBtnText}>
+                    {loading
+                      ? mode === 'login'
+                        ? 'Entrando…'
+                        : 'Criando conta…'
+                      : mode === 'login'
+                        ? 'Entrar'
+                        : 'Criar conta'}
                   </Text>
+                  {!loading ? (
+                    <Ionicons name="arrow-forward" size={19} color={colors.textInverse} />
+                  ) : null}
                 </AnimatedPressable>
-                <AnimatedPressable
-                  style={styles.modeTab}
-                  stateLayerColor={colors.onSurface}
-                  onPress={() => switchMode('signup')}
-                >
-                  <Text style={[styles.modeTabText, mode === 'signup' && styles.modeTabTextActive]}>
-                    Cadastrar
+
+                <Text style={[styles.legalText, isCompact && styles.legalTextCompact]}>
+                  Ao continuar, você concorda com o{' '}
+                  <Text style={styles.legalLink} onPress={() => setLegalDoc('terms')}>
+                    Termo de Uso
+                  </Text>{' '}
+                  e a{' '}
+                  <Text style={styles.legalLink} onPress={() => setLegalDoc('privacy')}>
+                    Política de Privacidade
                   </Text>
+                  .
+                </Text>
+              </View>
+            </Animated.View>
+          </ScrollView>
+
+          <Modal
+            visible={legalDoc !== null}
+            animationType="slide"
+            onRequestClose={() => setLegalDoc(null)}
+          >
+            <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
+              <View style={styles.legalModalHeader}>
+                <Text style={styles.legalModalTitle}>
+                  {legalDoc === 'privacy' ? PRIVACY_POLICY.title : TERMS_OF_USE.title}
+                </Text>
+                <AnimatedPressable
+                  onPress={() => setLegalDoc(null)}
+                  style={styles.legalCloseBtn}
+                  stateLayerColor={colors.onSurface}
+                  accessibilityLabel="Fechar"
+                >
+                  <Ionicons name="close" size={20} color={colors.textPrimary} />
                 </AnimatedPressable>
               </View>
-
-              <Text style={[styles.sheetLabel, isCompact && styles.sheetLabelCompact]}>
-                {mode === 'login' ? 'ACESSO AO CAIXA' : 'CRIAR CONTA DO QUIOSQUE'}
-              </Text>
-
-              {mode === 'signup' && (
-                <>
-                  <Text style={styles.fieldLabel}>NOME DO QUIOSQUE</Text>
-                  <View
-                    style={[
-                      styles.inputWrap,
-                      isCompact && styles.inputWrapCompact,
-                      focusedField === 'org' && styles.inputWrapFocused,
-                    ]}
-                  >
-                    <Ionicons
-                      name="storefront-outline"
-                      size={17}
-                      color={focusedField === 'org' ? HERO.sea : colors.textMuted}
-                    />
-                    <TextInput
-                      value={orgName}
-                      onChangeText={(v) => {
-                        setOrgName(v);
-                        if (error) setError('');
-                      }}
-                      onFocus={() => setFocusedField('org')}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="Quiosque do Rodrigo"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.input}
-                      returnKeyType="next"
-                    />
-                  </View>
-
-                  <Text style={[styles.fieldLabel, fieldGapStyle]}>SEU NOME</Text>
-                  <View
-                    style={[
-                      styles.inputWrap,
-                      isCompact && styles.inputWrapCompact,
-                      focusedField === 'name' && styles.inputWrapFocused,
-                    ]}
-                  >
-                    <Ionicons
-                      name="person-outline"
-                      size={17}
-                      color={focusedField === 'name' ? HERO.sea : colors.textMuted}
-                    />
-                    <TextInput
-                      value={displayName}
-                      onChangeText={(v) => {
-                        setDisplayName(v);
-                        if (error) setError('');
-                      }}
-                      onFocus={() => setFocusedField('name')}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="Seu nome completo"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.input}
-                      returnKeyType="next"
-                    />
-                  </View>
-                </>
-              )}
-
-              <Text style={[styles.fieldLabel, mode === 'signup' && fieldGapStyle]}>
-                E-MAIL
-              </Text>
-              <View
-                style={[
-                  styles.inputWrap,
-                  isCompact && styles.inputWrapCompact,
-                  focusedField === 'user' && styles.inputWrapFocused,
-                ]}
-              >
-                <Ionicons
-                  name="mail-outline"
-                  size={17}
-                  color={focusedField === 'user' ? HERO.sea : colors.textMuted}
-                />
-                <TextInput
-                  value={email}
-                  onChangeText={(v) => {
-                    setEmail(v);
-                    if (error) setError('');
-                  }}
-                  onFocus={() => setFocusedField('user')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="voce@quiosque.com"
-                  placeholderTextColor={colors.textMuted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  style={styles.input}
-                  returnKeyType="next"
-                />
-              </View>
-
-              <Text style={[styles.fieldLabel, fieldGapStyle]}>SENHA</Text>
-              <View
-                style={[
-                  styles.inputWrap,
-                  isCompact && styles.inputWrapCompact,
-                  focusedField === 'pass' && styles.inputWrapFocused,
-                ]}
-              >
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={17}
-                  color={focusedField === 'pass' ? HERO.sea : colors.textMuted}
-                />
-                <TextInput
-                  value={password}
-                  onChangeText={(v) => {
-                    setPassword(v);
-                    if (error) setError('');
-                  }}
-                  onFocus={() => setFocusedField('pass')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••••'}
-                  placeholderTextColor={colors.textMuted}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.input}
-                  onSubmitEditing={handleSubmit}
-                  returnKeyType="go"
-                />
-                <Pressable
-                  hitSlop={10}
-                  onPress={() => setShowPassword((v) => !v)}
-                  accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={17}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              </View>
-
-              {mode === 'login' && (
-                <Pressable
-                  hitSlop={8}
-                  onPress={handleForgotPassword}
-                  disabled={resettingPassword}
-                  style={styles.forgotPasswordWrap}
-                >
-                  <Text style={styles.forgotPasswordText}>
-                    {resettingPassword ? 'Enviando…' : 'Esqueceu a senha?'}
-                  </Text>
-                </Pressable>
-              )}
-
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle" size={14} color={colors.danger} />
-                  <Text style={styles.error}>{error}</Text>
-                </View>
+              {legalDoc ? (
+                <LegalDocument doc={legalDoc === 'privacy' ? PRIVACY_POLICY : TERMS_OF_USE} />
               ) : null}
+            </SafeAreaView>
+          </Modal>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
 
-              <AnimatedPressable
-                style={[styles.enterBtn, isCompact && styles.enterBtnCompact]}
-                stateLayerColor={colors.white}
-                onPress={handleSubmit}
-                disabled={loading}
-              >
-                <LinearGradient
-                  colors={[HERO.bronzeLight, HERO.bronze, HERO.bronzeDeep]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-                <Text style={styles.enterBtnText}>
-                  {loading
-                    ? mode === 'login'
-                      ? 'Entrando…'
-                      : 'Criando conta…'
-                    : mode === 'login'
-                      ? 'Entrar'
-                      : 'Criar conta'}
-                </Text>
-                {!loading ? (
-                  <Ionicons name="arrow-forward" size={19} color={colors.textInverse} />
-                ) : null}
-              </AnimatedPressable>
-
-              <Text style={[styles.legalText, isCompact && styles.legalTextCompact]}>
-                Ao continuar, você concorda com o{' '}
-                <Text style={styles.legalLink} onPress={() => setLegalDoc('terms')}>
-                  Termo de Uso
-                </Text>{' '}
-                e a{' '}
-                <Text style={styles.legalLink} onPress={() => setLegalDoc('privacy')}>
-                  Política de Privacidade
-                </Text>
-                .
-              </Text>
-            </View>
-          </Animated.View>
-        </ScrollView>
-
-        <Modal
-          visible={legalDoc !== null}
-          animationType="slide"
-          onRequestClose={() => setLegalDoc(null)}
-        >
-          <SafeAreaView style={styles.flex} edges={['top', 'left', 'right', 'bottom']}>
-            <View style={styles.legalModalHeader}>
-              <Text style={styles.legalModalTitle}>
-                {legalDoc === 'privacy' ? PRIVACY_POLICY.title : TERMS_OF_USE.title}
-              </Text>
-              <AnimatedPressable
-                onPress={() => setLegalDoc(null)}
-                style={styles.legalCloseBtn}
-                stateLayerColor={colors.onSurface}
-                accessibilityLabel="Fechar"
-              >
-                <Ionicons name="close" size={20} color={colors.textPrimary} />
-              </AnimatedPressable>
-            </View>
-            {legalDoc ? (
-              <LegalDocument doc={legalDoc === 'privacy' ? PRIVACY_POLICY : TERMS_OF_USE} />
-            ) : null}
-          </SafeAreaView>
-        </Modal>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      <Animated.View
+        pointerEvents={loading ? 'auto' : 'none'}
+        style={[styles.loadingOverlay, { opacity: loadingOpacity }]}
+      >
+        <LoadingScreen message={mode === 'login' ? 'Entrando…' : 'Criando sua conta…'} />
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
   scroll: {
     flexGrow: 1,
   },

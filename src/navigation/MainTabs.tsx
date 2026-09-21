@@ -18,7 +18,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const TAB_EMOJI: Record<keyof TabParamList, string> = {
   Painel: '▦',
   Mesas: '🍽',
-  Produtos: '📦',
+  Produtos: '📖',
   Relatorios: '📈',
 };
 
