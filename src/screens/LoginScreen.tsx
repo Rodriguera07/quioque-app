@@ -25,6 +25,7 @@ import { LoginHeroBackground } from '../components/LoginHeroBackground';
 import { LoginHeroScene } from '../components/LoginHeroScene';
 import { PRIVACY_POLICY, TERMS_OF_USE } from '../content/legal';
 import { useAuthStore } from '../context/useAuthStore';
+import { useMinimumVisible } from '../hooks/useMinimumVisible';
 import { useResponsiveContent } from '../hooks/useResponsiveContent';
 import { sendPasswordReset } from '../services/adminApi';
 import { colors, monoFontFamily, nunitoFontFamily, shape, spacing, typography } from '../theme';
@@ -152,14 +153,17 @@ export function LoginScreen() {
 
   // Cobre o formulário com a mesma cena "mar ao amanhecer" da abertura do
   // app enquanto autentica, em vez do usuário ver só o texto do botão mudar
-  // e depois um corte seco pro painel quando a sessão autentica.
+  // e depois um corte seco pro painel quando a sessão autentica. Sustenta a
+  // mesma duração mínima do loading de abertura do app, pra não piscar em
+  // logins muito rápidos.
+  const showLoadingOverlay = useMinimumVisible(loading);
   useEffect(() => {
     Animated.timing(loadingOpacity, {
-      toValue: loading ? 1 : 0,
-      duration: loading ? 200 : 260,
+      toValue: showLoadingOverlay ? 1 : 0,
+      duration: showLoadingOverlay ? 200 : 260,
       useNativeDriver: true,
     }).start();
-  }, [loading, loadingOpacity]);
+  }, [showLoadingOverlay, loadingOpacity]);
 
   const runShake = () => {
     shake.setValue(0);
@@ -572,7 +576,7 @@ export function LoginScreen() {
       </KeyboardAvoidingView>
 
       <Animated.View
-        pointerEvents={loading ? 'auto' : 'none'}
+        pointerEvents={showLoadingOverlay ? 'auto' : 'none'}
         style={[styles.loadingOverlay, { opacity: loadingOpacity }]}
       >
         <LoadingScreen message={mode === 'login' ? 'Entrando…' : 'Criando sua conta…'} />

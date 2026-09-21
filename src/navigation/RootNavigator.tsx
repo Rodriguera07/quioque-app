@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 import { AdminNotificationToasts } from '../components/AdminNotificationToasts';
-import { LoadingScreen } from '../components/LoadingScreen';
 import { useAuthStore } from '../context/useAuthStore';
 import { usePosStore } from '../context/usePosStore';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -30,10 +29,6 @@ export function RootNavigator() {
       usePosStore.getState().teardownOrgSync();
     }
   }, [uid, orgId, displayName]);
-
-  if (status === 'loading') {
-    return <LoadingScreen message="Restaurando sua sessão…" />;
-  }
 
   return (
     <>

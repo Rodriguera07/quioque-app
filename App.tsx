@@ -13,7 +13,8 @@ import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LoadingScreen } from './src/components/LoadingScreen';
-import { initAuthListener } from './src/context/useAuthStore';
+import { initAuthListener, useAuthStore } from './src/context/useAuthStore';
+import { useMinimumVisible } from './src/hooks/useMinimumVisible';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { colors } from './src/theme';
 
@@ -42,8 +43,15 @@ export default function App() {
     Fraunces_600SemiBold,
     Fraunces_700Bold,
   });
+  const authStatus = useAuthStore((s) => s.status);
 
-  if (!fontsLoaded) {
+  // Fontes e sessão costumam resolver quase instantaneamente (cache local),
+  // o que fazia esse loading só "piscar" na tela. Sustenta a mesma duração
+  // mínima usada depois do login, pra dar tempo do usuário apreciar o app.
+  const bootReady = fontsLoaded && authStatus !== 'loading';
+  const showBootLoading = useMinimumVisible(!bootReady);
+
+  if (showBootLoading) {
     return <LoadingScreen />;
   }
 
