@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions } from '@react-navigation/native';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -35,6 +35,50 @@ function stripImage(item: MenuItem) {
   return rest;
 }
 
+// Memoizada pra não re-renderizar TODAS as linhas do cardápio a cada tecla
+// digitada em uma delas — sem isso, editar o nome/preço de um item ficava
+// visivelmente travado em cardápios com muitos itens.
+const MenuItemRow = React.memo(function MenuItemRow({
+  item,
+  onUpdate,
+  onRemove,
+}: {
+  item: MenuItem;
+  onUpdate: (id: string, patch: Partial<MenuItem>) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <View style={styles.itemRow}>
+      <TextInput
+        value={item.name}
+        onChangeText={(v) => onUpdate(item.id, { name: v })}
+        placeholder="Nome do item"
+        placeholderTextColor={colors.textMuted}
+        style={styles.nameInput}
+      />
+      <View style={styles.priceWrap}>
+        <Text style={styles.priceCurrency}>R$</Text>
+        <TextInput
+          value={item.price ? String(item.price) : ''}
+          onChangeText={(v) => onUpdate(item.id, { price: Number(v.replace(',', '.')) || 0 })}
+          placeholder="0"
+          placeholderTextColor={colors.textMuted}
+          keyboardType="decimal-pad"
+          style={styles.priceInput}
+        />
+      </View>
+      <AnimatedPressable
+        onPress={() => onRemove(item.id)}
+        style={styles.removeBtn}
+        stateLayerColor={colors.danger}
+        accessibilityLabel={`Remover ${item.name || 'item'}`}
+      >
+        <Ionicons name="trash-outline" size={16} color={colors.danger} />
+      </AnimatedPressable>
+    </View>
+  );
+});
+
 export function MenuManagementScreen({ navigation }: Props) {
   const menuItems = usePosStore((s) => s.menuItems);
   const saveMenuItems = usePosStore((s) => s.saveMenuItems);
@@ -57,18 +101,18 @@ export function MenuManagementScreen({ navigation }: Props) {
     if (!hasEdited) setDraft(menuItems);
   }, [menuItems, hasEdited]);
 
-  const isDirty = useMemo(() => {
-    const a = draft.map(stripImage);
-    const b = menuItems.map(stripImage);
-    return JSON.stringify(a) !== JSON.stringify(b);
-  }, [draft, menuItems]);
+  // `hasEdited` já é ligado exatamente nos mesmos pontos em que `draft`
+  // diverge de `menuItems` (toda edição/adição/remoção) e desligado após
+  // salvar — reflete "tem alteração não salva" sem precisar serializar o
+  // cardápio inteiro em JSON a cada tecla digitada (ver useMemo removido).
+  const isDirty = hasEdited;
 
   const visibleCategories = activeFilter === 'all' ? CATEGORIES : [activeFilter];
 
-  const updateItem = (id: string, patch: Partial<MenuItem>) => {
+  const updateItem = useCallback((id: string, patch: Partial<MenuItem>) => {
     setHasEdited(true);
     setDraft((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-  };
+  }, []);
 
   const handleAddItem = (category: MenuCategory) => {
     setHasEdited(true);
@@ -193,36 +237,12 @@ export function MenuManagementScreen({ navigation }: Props) {
 
                 <View style={styles.card}>
                   {items.map((item) => (
-                    <View key={item.id} style={styles.itemRow}>
-                      <TextInput
-                        value={item.name}
-                        onChangeText={(v) => updateItem(item.id, { name: v })}
-                        placeholder="Nome do item"
-                        placeholderTextColor={colors.textMuted}
-                        style={styles.nameInput}
-                      />
-                      <View style={styles.priceWrap}>
-                        <Text style={styles.priceCurrency}>R$</Text>
-                        <TextInput
-                          value={item.price ? String(item.price) : ''}
-                          onChangeText={(v) =>
-                            updateItem(item.id, { price: Number(v.replace(',', '.')) || 0 })
-                          }
-                          placeholder="0"
-                          placeholderTextColor={colors.textMuted}
-                          keyboardType="decimal-pad"
-                          style={styles.priceInput}
-                        />
-                      </View>
-                      <AnimatedPressable
-                        onPress={() => setRemoveTarget(item.id)}
-                        style={styles.removeBtn}
-                        stateLayerColor={colors.danger}
-                        accessibilityLabel={`Remover ${item.name || 'item'}`}
-                      >
-                        <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                      </AnimatedPressable>
-                    </View>
+                    <MenuItemRow
+                      key={item.id}
+                      item={item}
+                      onUpdate={updateItem}
+                      onRemove={setRemoveTarget}
+                    />
                   ))}
 
                   {items.length === 0 && (

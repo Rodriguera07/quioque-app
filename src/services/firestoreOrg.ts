@@ -20,11 +20,12 @@ import {
   ClosedSale,
   MenuItemInput,
   PaymentMethod,
+  SplitPayment,
   Table,
   UserProfile,
   WebPushSubscription,
 } from '../types';
-import { computeTotals, isPaidInFull } from '../utils/billing';
+import { computeNextPaymentAmount, computeTotals, isPaidInFull } from '../utils/billing';
 
 const tablesCol = (orgId: string) => collection(db, 'organizations', orgId, 'tables');
 const closedSalesCol = (orgId: string) => collection(db, 'organizations', orgId, 'closedSales');
@@ -53,10 +54,61 @@ export function updateTable(orgId: string, tableId: string, patch: Partial<Table
   return updateDoc(doc(tablesCol(orgId), tableId), patch);
 }
 
+export interface RecordPaymentResult {
+  status: 'ok' | 'already-paid' | 'not-found';
+  amount: number;
+  fullyPaid: boolean;
+}
+
+// Transação (não um updateDoc otimista) porque `payments` é lido e
+// recalculado a partir do documento fresco no servidor — sem isso, dois
+// pagamentos quase simultâneos (dois garçons cobrando a mesma mesa dividida)
+// cada um escreveria `payments: [...snapshotLocalDesatualizado, novoPagamento]`,
+// e o segundo `updateDoc` a chegar no servidor apagaria silenciosamente o
+// pagamento do primeiro.
+export async function recordPaymentTransaction(
+  orgId: string,
+  tableId: string,
+  payment: { id: string; method: PaymentMethod; paidAt: string }
+): Promise<RecordPaymentResult> {
+  const tableRef = doc(tablesCol(orgId), tableId);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(tableRef);
+    if (!snap.exists()) return { status: 'not-found' as const, amount: 0, fullyPaid: false };
+
+    const table = snap.data() as Table;
+    const amount = computeNextPaymentAmount(table);
+    if (amount <= 0) {
+      return { status: 'already-paid' as const, amount: 0, fullyPaid: isPaidInFull(table) };
+    }
+
+    const fullPayment: SplitPayment = { ...payment, amount };
+    const payments = [...table.payments, fullPayment];
+    tx.update(tableRef, { payments });
+    return { status: 'ok' as const, amount, fullyPaid: isPaidInFull({ ...table, payments }) };
+  });
+}
+
 export function subscribeTables(orgId: string, cb: (tables: Table[]) => void): Unsubscribe {
+  // Reaproveita a referência de objeto das mesas que não mudaram neste
+  // evento (via `docChanges()`, em vez de `snap.docs.map(d => d.data())`
+  // puro). Sem isso, `.data()` cria um objeto novo pra TODA mesa a cada
+  // snapshot — mesmo pra quem não mudou nada — e telas que leem uma mesa
+  // específica com `tables.find(...)` (TableDetail, AddItems, CloseTable)
+  // re-renderizavam toda vez que QUALQUER outra mesa da organização mudava,
+  // porque o Zustand via um valor "novo" por comparação referencial.
+  let byId = new Map<string, Table>();
   return onSnapshot(
     tablesCol(orgId),
-    (snap) => cb(snap.docs.map((d) => d.data() as Table)),
+    (snap) => {
+      const next = new Map(byId);
+      for (const change of snap.docChanges()) {
+        if (change.type === 'removed') next.delete(change.doc.id);
+        else next.set(change.doc.id, change.doc.data() as Table);
+      }
+      byId = next;
+      cb(snap.docs.map((d) => next.get(d.id) ?? (d.data() as Table)));
+    },
     logSnapshotError('tables')
   );
 }

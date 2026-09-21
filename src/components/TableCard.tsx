@@ -39,7 +39,9 @@ export function TableCard({ table, onPress, style }: Props) {
     >
       <View style={styles.topRow}>
         <View style={[styles.numBadge, { backgroundColor: accent }]}>
-          <Text style={styles.numBadgeText}>{table.label}</Text>
+          <Text style={styles.numBadgeText} numberOfLines={1}>
+            {table.label}
+          </Text>
         </View>
         <View style={[styles.tempoPill, { backgroundColor: `${accent}24` }]}>
           <Ionicons name="time-outline" size={11} color={accent} />
@@ -69,9 +71,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   numBadge: {
-    width: 30,
+    minWidth: 30,
+    maxWidth: 90,
     height: 30,
     borderRadius: 10,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

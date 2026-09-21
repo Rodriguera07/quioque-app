@@ -6,6 +6,7 @@ import {
   getClosedSalesSince,
   getDaySummary,
   newTableId,
+  recordPaymentTransaction,
   saveMenu,
   subscribeClosedSalesSince,
   subscribeMenu,
@@ -79,7 +80,7 @@ interface PosState {
   toggleServiceFee: (tableId: string) => void;
   toggleSplit: (tableId: string) => void;
   setSplitCount: (tableId: string, count: number) => void;
-  recordPayment: (tableId: string, method: PaymentMethod) => Promise<void>;
+  recordPayment: (tableId: string, method: PaymentMethod) => Promise<{ ok: boolean; fullyPaid: boolean }>;
   closeTable: (tableId: string) => Promise<CloseTableResult>;
   endDay: () => Promise<DaySummary | null>;
 }
@@ -372,24 +373,22 @@ export const usePosStore = create<PosState>((set, get) => ({
 
   recordPayment: async (tableId, method) => {
     const { orgId, currentUser, tables } = get();
-    if (!orgId || !currentUser) return;
+    if (!orgId || !currentUser) return { ok: false, fullyPaid: false };
     const table = tables.find((t) => t.id === tableId);
-    if (!table) return;
-    const amount = computeNextPaymentAmount(table);
-    if (amount <= 0) return;
+    if (!table) return { ok: false, fullyPaid: false };
 
-    const payment: SplitPayment = {
+    // Transação (não o `amount`/`payments` calculados a partir do estado
+    // local): o valor da parcela e a checagem de "já está tudo pago" são
+    // recalculados no servidor a partir do documento fresco, pra dois
+    // pagamentos simultâneos na mesma mesa dividida (dois garçons cobrando
+    // ao mesmo tempo) não se sobrescreverem.
+    const result = await recordPaymentTransaction(orgId, tableId, {
       id: generateId('pay'),
       method,
-      amount,
       paidAt: new Date().toISOString(),
-    };
+    });
+    if (result.status !== 'ok') return { ok: result.status === 'already-paid', fullyPaid: result.fullyPaid };
 
-    // Aguardado (não fire-and-forget) porque a tela de fechamento de mesa
-    // depende de o pagamento já estar confirmado no servidor antes de
-    // chamar closeTable — a transação de fechamento revalida o saldo lendo
-    // o documento direto do servidor.
-    await updateTable(orgId, tableId, { payments: [...table.payments, payment] });
     logAuditEvent({
       orgId,
       userId: currentUser.uid,
@@ -397,13 +396,14 @@ export const usePosStore = create<PosState>((set, get) => ({
       type: 'payment_recorded',
       tableId,
       tableLabel: table.label,
-      detail: `${PAYMENT_METHOD_LABEL[method]} · ${amount.toFixed(2)}`,
+      detail: `${PAYMENT_METHOD_LABEL[method]} · ${result.amount.toFixed(2)}`,
     });
     notifyAdmins(
       orgId,
       'Pagamento registrado',
-      `${currentUser.displayName} registrou ${PAYMENT_METHOD_LABEL[method]} (R$ ${amount.toFixed(2)}) na mesa ${table.label}.`
+      `${currentUser.displayName} registrou ${PAYMENT_METHOD_LABEL[method]} (R$ ${result.amount.toFixed(2)}) na mesa ${table.label}.`
     );
+    return { ok: true, fullyPaid: result.fullyPaid };
   },
 
   closeTable: async (tableId) => {

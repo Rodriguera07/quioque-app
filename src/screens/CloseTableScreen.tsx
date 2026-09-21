@@ -13,7 +13,6 @@ import {
   getPaidPeopleCount,
   getPaidTotal,
   getRemainingAmount,
-  PAID_EPSILON,
   usePosStore,
 } from '../context/usePosStore';
 import { RootStackParamList } from '../navigation/types';
@@ -66,21 +65,20 @@ export function CloseTableScreen({ navigation, route }: Props) {
     if (!selected) return;
     setConfirming(true);
 
-    // Calculado a partir do estado ANTES do pagamento (não depois), pois
-    // recordPayment só resolve quando o servidor confirma a escrita — nesse
-    // meio-tempo o listener local ainda não necessariamente atualizou
-    // `tables`, então ler o estado "pós-pagamento" seria pouco confiável.
-    const willBeFullyPaid = remaining - nextAmount <= PAID_EPSILON;
-
+    let paymentResult: { ok: boolean; fullyPaid: boolean };
     try {
-      await recordPayment(tableId, selected);
+      paymentResult = await recordPayment(tableId, selected);
     } catch (err) {
       setConfirming(false);
       showAlert('Erro ao registrar pagamento', 'Verifique sua conexão e tente novamente.');
       return;
     }
 
-    if (willBeFullyPaid) {
+    // `fullyPaid` vem da própria transação do pagamento, recalculado no
+    // servidor a partir do documento fresco — não do `remaining`/`nextAmount`
+    // lidos no início desta função, que podem estar desatualizados se outro
+    // dispositivo pagou a mesma mesa dividida nesse meio-tempo.
+    if (paymentResult.fullyPaid) {
       const result = await closeTable(tableId);
       if (result === 'ok') {
         navigation.popToTop();
